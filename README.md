@@ -68,6 +68,7 @@ root
 ├─ template
 │  ├─ all-skills.md
 │  ├─ certifications.md
+│  ├─ contact-info.txt
 │  ├─ education.md
 │  ├─ experience/
 │  |  └─ <YYYY-MM_YYYY-MM>.md
@@ -83,6 +84,9 @@ Includes the plan for building the resume from its modularized parts.
 
 ### formatting.md
 Includes the specifics for formatting.
+
+### template/contact-info.txt
+The applicant's name, title, phone, email, and web link (typically LinkedIn). Used to populate the resume header. LinkedIn URLs are labelled `li:` in the output; other web links use `w:`.
 
 ### template/all-skills.md
 Includes a high-level list of all of the applicant's skills.

@@ -17,13 +17,17 @@ The following outcome is expected, given sufficient information is provided:
 - Read the job description file from the `variable-input/job-descriptions` folder that is specified by the user.
 - Read the `variable-input/career-goals` set by the user.
 - Read all of the files, recursively, under the `template` folder.
+- Read `template/contact-info.txt` for the applicant's name, title, phone, email, and web/LinkedIn link.
 - Set a summary, based on the job description career goals, and relevant strengths for the role.
 - Set the skills section to include the most keywords relevant or helpful to the job description.
 - Analyze, based on the job description and career goals, which experience should be included.
   - Experience from more than 10 years ago does not need to as detailed as the more recent work.
     - Exception: if the experience is relevant, include it and its most relevant highlights.
   - Experience from the last 10-15 years should have more bullet point highlights.
+  - Do not drop a work experience item entirely if removing it would create a chronological gap in the applicant's experience.
+    - Instead, reduce the bullet points to most relevent, or at least the most transferable skills.
   - If there are too many bullet points in any of the work experience items, only use highlights that are the most relevant to the job description, especially if they align with the career goal.
+  - Try not to cut back on the recent experience if you're not running out of the 2-page space. Unless the experiece hurts for the job description.
   - Try to keep the bullets verbatim, unless there is a strong need to reprhase in order to help land the position.
   - Prioritize space for relevant highlights.
 - Include education, certifications, publications, and references section, where relevant or useful.
@@ -38,7 +42,7 @@ The following layout places the structured data in a visual order.
 Tokens inside of a pair of curly brackets are variables. Words inside of a pair of square brackets can be instructions.
 ```
 {applicant-name} | {applicant-title}
-t: {contact-info-phone} | e: {contact-info-email} | w: {contact-info-web}
+t: {contact-info-phone} | e: {contact-info-email} | li: {contact-info-linkedin} [use li: for LinkedIn URLs; use w: for any other web link]
 
 {summary-section-header}
 {summary-paragraph}
@@ -47,14 +51,17 @@ t: {contact-info-phone} | e: {contact-info-email} | w: {contact-info-web}
 {all-skills-relevant-to-job-description}
 
 {experience-section-header}
-{experience-section-item-header}({location}):{date-range}
+{experience-section-item-header}
+{date-range} ({location})
+Key Skills:{key-skills}
 {experience-section-item-highlights-1}
 {experience-section-item-highlights-2}
 {experience-section-item-highlights-3}
 [etc. repeat as necessary ...]
 
 {education-section-header}
-{education-section-item-header}({location}):{date-range}
+{education-section-item-header}
+{date-range} ({location})
 {education-section-item-highlights-1}
 {education-section-item-highlights-2}
 [etc. repeat as necessary ...]

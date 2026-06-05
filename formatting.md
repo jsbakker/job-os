@@ -29,14 +29,12 @@ The following CSS structure defines styles to be mapped to the above areas of th
     font-size: 18pt;
     font-weight: bold;
     color: black;
-    /* border: transparent; */
 }
 
 .applicant-title {
     font-size: 18pt;
     font-weight: normal;
     color: black;
-    /* border: transparent; */
 }
 
 .contact-info {
@@ -48,14 +46,16 @@ The following CSS structure defines styles to be mapped to the above areas of th
     font-size: 12pt;
     font-weight: bold;
     color: black;
-    /* border: transparent; */
+    padding-bottom: 2px;
+    margin-bottom: 2px;
 }
 
 .section-item-header {
-    font-size: 10.5pt;
+    font-size: 10pt;
     font-weight: bold;
     color: black;
-    /* border: transparent; */
+    padding-bottom: 2px;
+    margin-bottom: 2px;
 }
 
 .job-skills-title {
@@ -63,19 +63,32 @@ The following CSS structure defines styles to be mapped to the above areas of th
     font-weight: bold;
     font-style: italic;
     color: black;
+    padding-top: 2px;
+    margin-top: 2px;
 }
 
 .job-skills {
     font-size: 9pt;
     font-style: italic;
     color: black;
+    padding-top: 2px;
+    margin-top: 2px;
 }
 
 p {
     font-size: 10pt;
+    padding-top: 2px;
+    margin-top: 2px;
+}
+
+li {
+    font-size: 10pt;
+    padding-top: 2px;
+    margin-top: 2px;
 }
 
 * {
     font-family: "Avenir Book", "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 10pt;
 }
 ```
