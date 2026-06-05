@@ -239,21 +239,35 @@ Do not trim content that is load-bearing for the job description match.
 
 ## Step 8 — ATS Friendliness Check
 
-Inspect the generated `output/<base-name>.md` for each of the following. Fix any failures and regenerate the PDF.
+ATS systems receive the **PDF**, not the markdown. Run all checks against the rendered PDF output. Start by extracting the PDF text using the `Read` tool directly on `output/<base-name>.pdf` — the Read tool handles PDFs natively; do NOT use shell-based extraction (pdftotext, python subprocess, etc.).
 
-**Structure checks (must all pass):**
-- [ ] No tables, text boxes, or multi-column layouts.
-- [ ] No images or embedded graphics.
-- [ ] Section headers use plain words: Summary, Skills, Experience, Education, Certifications, Publications, References.
+**Structure checks — verify in both the extracted PDF text and the markdown source (must all pass):**
+- [ ] The `Read` tool produces non-empty, readable text from the PDF (empty or garbled output means the PDF is image-based or encrypted — FAIL).
+- [ ] No tables, text boxes, or multi-column layouts in the markdown source.
+- [ ] No images or embedded graphics in the markdown source.
+- [ ] Section headers use plain words only: Summary, Skills, Experience, Education, Certifications, Publications, References.
 - [ ] Dates use a consistent, parseable format (e.g., "October 2021 – April 2026" or "Oct 2021 – Apr 2026"). No abbreviations that differ between entries.
 - [ ] Job titles, company names, and locations appear on or directly adjacent to their date range — not separated by unrelated content.
 - [ ] Bullet points use a plain character (•) or a hyphen (-), not custom Unicode symbols.
+- [ ] The extracted PDF text contains at least one email address (format: `x@y.z`) and at least one phone number. Check the contact line.
+- [ ] No employment gap exceeds 2 years between adjacent experience entries. Parse date ranges from all included experience entries, sort them chronologically, and compute the gap between each end date and the next start date. If any gap exceeds 24 months, FAIL and identify the specific gap (e.g., "30-month gap between Role A end Apr 2020 and Role B start Oct 2022").
+- [ ] If the job posting explicitly states a required degree or certification (using language like "required", "must have", "Bachelor's required"), that credential appears in the extracted PDF text under Education or Certifications.
 
-**Keyword checks (must all pass):**
-- [ ] At least 5 keywords from the job description appear verbatim (or near-verbatim) in the Skills or Summary section.
+**Keyword checks — verify in extracted PDF text (must all pass):**
+- [ ] At least 5 keywords from the job description appear verbatim (or near-verbatim) in the Skills or Summary section of the PDF text.
 - [ ] The applicant's most recent job title appears in the header.
 
-If any check fails, fix the markdown, re-run Step 4 (validation), Step 6 (PDF generation), Step 7 (page count), and Step 8 until all checks pass.
+**Warnings — evaluate and record but do not block generation:**
+
+Collect all applicable warnings; they will surface in the Step 11 report.
+
+- ⚠ **Employment gap 6–24 months:** If any gap between adjacent experience entries is between 6 and 24 months, note it: e.g., "14-month gap between Role A (end Apr 2020) and Role B (start Jun 2021)." Not a disqualifier but visible to recruiters.
+- ⚠ **Keyword distribution:** Identify the top 3–5 required skills from the job description. If any appear only in the Skills or Summary section and not in any experience bullet in the PDF text, flag each one: e.g., "\"Terraform\" appears in Skills only — not in any experience bullet."
+- ⚠ **En dashes in date ranges:** If date ranges use en dashes (–) rather than plain hyphens (-), flag as advisory — legacy ATS systems may misparse them.
+- ⚠ **LinkedIn URL absent:** If no LinkedIn URL is present in the contact line of the PDF text, flag it — increasingly expected; absence reduces reach-back rate.
+- ⚠ **No quantified achievements:** If no bullet points in the PDF text contain a number, percentage (%), dollar amount ($), or multiplier (e.g., "2x", "3×"), flag it — LLM-era ATS systems weight evidence-backed claims more heavily.
+
+If any FAIL check does not pass, fix the markdown, re-run Step 4 (validation), Step 6 (PDF generation), Step 7 (page count), and Step 8 until all checks pass. Warnings do not require re-generation.
 
 ---
 
@@ -359,7 +373,7 @@ Validation summary:
   ✓ No hallucinations detected
   ✓ Resume PDF page count: <N> page(s)
   ✓ Cover letter PDF page count: 1 page(s)
-  ✓ ATS checks passed
+  ✓ ATS checks passed[, <N> warning(s) — see below]
 
 Job match score: <total>/100 — <interpretation label>
 
@@ -371,4 +385,12 @@ Job match score: <total>/100 — <interpretation label>
 Keywords matched from job description: <list the matched keywords>
 Experience entries included: <list the roles included>
 Experience entries excluded: <list any roles omitted and why>
+[If any ATS warnings exist:]
+
+ATS warnings (<N>):
+  ⚠ <warning 1>
+  ⚠ <warning 2>
+  ...
 ```
+
+Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings.

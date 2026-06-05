@@ -1,5 +1,5 @@
-# Resume Blueprint
-A blueprint for making a template to tailor your resume to specific job descriptions. Uses AI to build a specialized version of your resume from the modularized template.
+# Agentic Resume Blueprint
+A templated blueprint to tailor your resume to specific job descriptions. This project uses agentic AI to build a specialized version of your resume from the modularized template.
 
 
 ## Problem Statement
@@ -17,7 +17,7 @@ If we provide all of the information and let AI filter out what is most relevant
 
 Why would I need this, if LinkedIn has built-in AI that already does it? I've seen what LinkedIn AI can do, and it was too flawed to feel comfortable letting it represent me on a professional level.
 
-If we prescribe a structure, format and style, and instruct AI using agent skills, we can put our own standards and quality measures on it.
+If we prescribe a structure, format and style, and instruct AI using agent skills, we can put our own standards and quality measures on it. We can control many elements of a resume to be deterministic.
 
 
 ## Requirements
@@ -28,7 +28,6 @@ If we prescribe a structure, format and style, and instruct AI using agent skill
 `brew install pandoc weasyprint`
 
 
-<!-- NOTE: This is still a work in progress -->
 ## Instructions
 To generate a resume:
 
@@ -41,29 +40,18 @@ cd <path-to-repo>
 claude
 ```
 5. Pass the job description to the tailor-resume Claude skill. E.g.:
-<!-- TODO: create SKILL.md file.
-
-Example might work:
-1. Read job-description file
-2. Compile tailored resume (markdown) from most relevant fragments, respecting the formatting.md sections
-3. Using the CSS styles from the formatting.md guideline, use the markdown resume as input to create a PDF.
-
-E.g.
-`pandoc <applicant-name>-<job-description>.md -o <applicant-name>-<job-description>.pdf --pdf-engine=weasyprint -c resume-style.css`
-
--->
 ```bash
 /tailor-resume <name-of-job-desctiption-file>
 ```
+6. Review the claude output for job match and ATS validation.
+7. View the output PDF in the resulting `output` folder.
 
-6. View the output PDF in the resulting `output` folder.
 
-
-<!-- NOTE: This is still a work in progress -->
 ## Project Structure
 ```
 root
 ├─ blueprint.md
+├─ CLAUDE.md
 ├─ formatting.md
 ├─ template
 │  ├─ all-skills.md
@@ -79,8 +67,14 @@ root
 └─ README.md
 ```
 
+### .claude (hidden)
+Includes settings for permissions to `output` folder, and defintions for resume-building commands.
+
 ### blueprint.md
 Includes the plan for building the resume from its modularized parts.
+
+### CLAUDE.md
+Instructions for Claude Code on how to use this project. Loaded into every new session.
 
 ### formatting.md
 Includes the specifics for formatting.
