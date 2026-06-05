@@ -18,7 +18,7 @@ The following outcome is expected, given sufficient information is provided:
 - Read the `variable-input/career-goals` set by the user.
 - Read all of the files, recursively, under the `template` folder.
 - Read `template/contact-info.txt` for the applicant's name, title, phone, email, and web/LinkedIn link.
-- Set a summary, based on the job description career goals, and relevant strengths for the role.
+- Set a summary, based on the job description career goals, and relevant strengths for the role. It has to have a good hook.
 - Set the skills section to include the most keywords relevant or helpful to the job description.
 - Analyze, based on the job description and career goals, which experience should be included.
   - Experience from more than 10 years ago does not need to as detailed as the more recent work.
@@ -70,7 +70,7 @@ Key Skills:{key-skills}
 [certifications, if applicable]
 
 {publications-section-header}
-[publications, if applicable]
+[publications, if applicable, using publication title as link text, and URL as link location]
 
 {references-section-header}
 Available upon request.

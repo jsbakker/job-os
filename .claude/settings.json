@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(output/*)",
+      "Edit(output/*)",
+      "Bash(pandoc output/*)",
+      "Bash(mdls *)",
+      "Bash(shasum *)"
+    ]
+  }
+}

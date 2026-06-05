@@ -11,7 +11,16 @@ You are an expert resume crafter and career coach. Follow every step below in or
 
 ## Step 0 — Stale Check
 
-Derive the output base name from the applicant's name and the job description filename stem (same rule as Step 3). Check whether `output/<base-name>.manifest` exists.
+Derive the output base name using the same normalization rule defined in Step 3. Run this exact command to compute it:
+
+```bash
+JOB_STEM=$(basename "$ARGUMENTS" | sed 's/\.[^.]*$//')  # strip extension
+APPLICANT=$(grep '^name:' template/contact-info.txt | sed 's/name: *//' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+BASE_NAME="${APPLICANT}-$(echo "$JOB_STEM" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/--*/-/g; s/^-//; s/-$//')"
+echo "$BASE_NAME"
+```
+
+Check whether `output/<base-name>.manifest` exists.
 
 If it does, rehash every file listed under `"inputs"` in the manifest:
 
@@ -48,7 +57,7 @@ If **any hash differs** (or the manifest is absent), continue to Step 1.
 
 Read the following files before doing any writing:
 
-1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting
+1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting. **Use the `Read` tool directly on the file path — do NOT attempt shell-based extraction (pdftotext, python subprocess, etc.).** The Read tool handles PDFs natively; shell tools are not reliably installed.
 2. All files under `variable-input/career-goals/` — the applicant's career intentions
 3. All files recursively under `template/` — the applicant's full career data
 4. `blueprint.md` — assembly rules, layout, and constraints
@@ -66,7 +75,7 @@ Extract from the template:
 
 Using the job description and career goals as filters:
 
-- Write a 2–4 sentence summary that positions the applicant for this specific role. Avoid em dashes (—) entirely in the summary; use commas, colons, or periods to restructure instead. Zero em dashes preferred; one at most.
+- Write a 2-3 sentence summary with a good hook that positions the applicant for this specific role. Avoid em dashes (—) entirely in the summary; use commas, colons, or periods to restructure instead. Zero em dashes preferred; one at most.
 - Select skills from `template/all-skills.md` that match or complement keywords in the job description. Preserve exact terminology from the job posting where it matches reality.
 - For each experience entry, decide whether to include it:
   - Work from the last 10 years: include with the most relevant highlights.
@@ -121,7 +130,7 @@ Record each dimension score and rationale. These will be reported in Step 11.
 
 ## Step 3 — Generate the Markdown Resume
 
-Derive an output base name from the applicant's name and the job description filename (e.g., `jeffrey-bakker-<job-file-stem>`). All outputs go in the `output/` directory (create it if it does not exist).
+The output base name is already computed from Step 0. For reference, the normalization rule is: take the applicant's name (from `contact-info.txt`) and the job description filename stem, convert both to lowercase, replace any non-alphanumeric characters with hyphens, collapse consecutive hyphens, and strip leading/trailing hyphens. Example: `Acme_Corp_-_Senior_iOS_Developer.pdf` → `jane-doe-acme-corp-senior-ios-developer`. All outputs go in the `output/` directory (create it if it does not exist).
 
 Write the tailored resume to: `output/<base-name>.md`
 
@@ -203,15 +212,19 @@ Missing dependency. Install with: brew install pandoc weasyprint
 
 ## Step 7 — Validate Page Count (≤ 2 pages)
 
-Check the page count of the generated PDF:
+Check the page count of the generated PDF. Use the first method that works:
 
 ```bash
+# Method 1: pdfinfo (install with: brew install poppler)
 pdfinfo output/<base-name>.pdf | grep "Pages:"
 ```
 
-If `pdfinfo` is unavailable (common on macOS), use:
 ```bash
-mdls -name kMDItemNumberOfPages output/<base-name>.pdf
+# Method 2: mdimport + mdls (reliable on macOS, no install needed)
+# mdimport forces an immediate Spotlight index of the file, making mdls accurate.
+# Do NOT use mdls alone — it reads Spotlight's async index and will return a stale
+# count for a newly-generated PDF.
+mdimport output/<base-name>.pdf && mdls -name kMDItemNumberOfPages output/<base-name>.pdf
 ```
 
 **If the PDF exceeds 2 pages**, trim content in the markdown and regenerate:
@@ -288,9 +301,9 @@ Then generate the PDF:
 pandoc output/<base-name>-cover-letter.md -o output/<base-name>-cover-letter.pdf --pdf-engine=weasyprint -c output/resume-style.css
 ```
 
-Check the page count:
+Check the page count using the same approach as Step 7:
 ```bash
-mdls -name kMDItemNumberOfPages output/<base-name>-cover-letter.pdf
+mdimport output/<base-name>-cover-letter.pdf && mdls -name kMDItemNumberOfPages output/<base-name>-cover-letter.pdf
 ```
 
 If the cover letter exceeds 1 page, tighten the prose and regenerate until it fits.

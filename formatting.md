@@ -9,6 +9,7 @@ The following JSON stucture defines element distinctions for specific areas of t
         "applicant-title": ".applicant-title",
         "contact-info": ".contact-info",
         "summary-section-header": ".section-header",
+        "summary-paragraph": ".summary-paragraph",
         "skills-section-header": ".section-header",
         "experience-section-header": ".section-header",
         "experience-section-item-header": ".section-item-header",
@@ -26,32 +27,39 @@ The following JSON stucture defines element distinctions for specific areas of t
 The following CSS structure defines styles to be mapped to the above areas of the resume.
 ```css
 .applicant-name {
-    font-size: 18pt;
+    font-size: 14pt;
     font-weight: bold;
     color: black;
 }
 
 .applicant-title {
-    font-size: 18pt;
+    font-size: 14pt;
     font-weight: normal;
     color: black;
 }
 
 .contact-info {
-    font-size: 10pt;
+    font-size: 8pt;
     color: black;
+    padding-top: 0px;
+    margin-top: 0px;
 }
 
 .section-header {
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: bold;
     color: black;
     padding-bottom: 2px;
     margin-bottom: 2px;
+    text-align: center;
+}
+
+.summary-paragraph {
+    text-align: justify;
 }
 
 .section-item-header {
-    font-size: 10pt;
+    font-size: 9pt;
     font-weight: bold;
     color: black;
     padding-bottom: 2px;
@@ -59,7 +67,7 @@ The following CSS structure defines styles to be mapped to the above areas of th
 }
 
 .job-skills-title {
-    font-size: 9pt;
+    font-size: 8pt;
     font-weight: bold;
     font-style: italic;
     color: black;
@@ -68,7 +76,7 @@ The following CSS structure defines styles to be mapped to the above areas of th
 }
 
 .job-skills {
-    font-size: 9pt;
+    font-size: 8pt;
     font-style: italic;
     color: black;
     padding-top: 2px;
@@ -76,19 +84,22 @@ The following CSS structure defines styles to be mapped to the above areas of th
 }
 
 p {
-    font-size: 10pt;
+    font-size: 9pt;
     padding-top: 2px;
     margin-top: 2px;
+    line-height: 1.285;
 }
 
 li {
-    font-size: 10pt;
+    font-size: 9pt;
     padding-top: 2px;
     margin-top: 2px;
+    line-height: 1.285;
 }
 
 * {
     font-family: "Avenir Book", "Helvetica Neue", Arial, sans-serif !important;
-    font-size: 10pt;
+    font-size: 9pt;
+    letter-spacing: 0.05em;
 }
 ```
