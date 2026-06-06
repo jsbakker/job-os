@@ -75,7 +75,8 @@ Extract from the template:
 
 Using the job description and career goals as filters:
 
-- Write a 2-3 sentence summary with a good hook that positions the applicant for this specific role. Avoid em dashes (—) entirely in the summary; use commas, colons, or periods to restructure instead. Zero em dashes preferred; one at most.
+- Write a 2-3 sentence summary. Each sentence must be short and independently scannable — no run-on sentences. The summary is a value statement, not a narrative: it should read like a tight professional hook, not a mini cover letter. Save storytelling and role-specific context for the cover letter. Write in **first person** ("I have…", "My background…", "I bring…") — never refer to the applicant by name or in the third person. Avoid em dashes (—) entirely; use commas, colons, or periods instead. Zero em dashes preferred; one at most.
+- **Before making any claim about years or depth in a specific technology**, verify it against the experience entries. A language counts toward experience only in roles where it appears in that entry's Key Skills. Do not aggregate loosely — check each role.
 - Select skills from `template/all-skills.md` that match or complement keywords in the job description. Preserve exact terminology from the job posting where it matches reality.
 - For each experience entry, decide whether to include it:
   - Work from the last 10 years: include with the most relevant highlights.
@@ -138,7 +139,7 @@ Write the tailored resume to: `output/<base-name>.md`
 - `<span class="applicant-name">Name</span>` and `<span class="applicant-title">Title</span>` on the header line
 - `<p class="contact-info">...</p>` for the contact line — omit any field not found in `contact-info.txt` (no placeholders); if the web link is a LinkedIn URL (`linkedin.com`), label it `li:` instead of `w:`
 - `<p class="section-header">Skills</p>` for each section header
-- `<p class="section-item-header">Role, Company</p>` for each experience/education entry header, then `<p>Date – Date (Location)</p>` on the line immediately following
+- `<p class="section-item-header">Role, Company</p>` for each experience/education entry header, then `<p>Date - Date (Location)</p>` on the line immediately following. **Use a plain hyphen (`-`) in date ranges — never an en dash (–) or em dash (—).**
 - `<p><span class="job-skills-title">Key Skills:</span> <span class="job-skills">skill, skill, ...</span></p>` immediately after each experience entry header, using the Key Skills from that entry's template file verbatim
 - Standard markdown list items (`-`) for bullet highlights (pandoc renders them as `<li>`)
 
@@ -246,7 +247,7 @@ ATS systems receive the **PDF**, not the markdown. Run all checks against the re
 - [ ] No tables, text boxes, or multi-column layouts in the markdown source.
 - [ ] No images or embedded graphics in the markdown source.
 - [ ] Section headers use plain words only: Summary, Skills, Experience, Education, Certifications, Publications, References.
-- [ ] Dates use a consistent, parseable format (e.g., "October 2021 – April 2026" or "Oct 2021 – Apr 2026"). No abbreviations that differ between entries.
+- [ ] Dates use a consistent, parseable format (e.g., "October 2021 - April 2026" or "Oct 2021 - Apr 2026") with a plain hyphen (`-`), not an en dash (–) or em dash (—). No abbreviations that differ between entries.
 - [ ] Job titles, company names, and locations appear on or directly adjacent to their date range — not separated by unrelated content.
 - [ ] Bullet points use a plain character (•) or a hyphen (-), not custom Unicode symbols.
 - [ ] The extracted PDF text contains at least one email address (format: `x@y.z`) and at least one phone number. Check the contact line.
@@ -283,6 +284,7 @@ Write a tailored cover letter to `output/<base-name>-cover-letter.md`. The resum
 - Closing: Express genuine enthusiasm, invite next steps, and sign off. One short paragraph.
 - Total length: 3–4 paragraphs, strictly 1 page when rendered as PDF.
 - Tone: confident, specific, human. No buzzwords, no filler phrases ("I am a passionate team player who thrives in…").
+- Voice: **first person throughout** — "I built…", "My work on…", "I am looking for…". Never refer to the applicant by name or in the third person.
 - Avoid em dashes (—) throughout the letter. Restructure sentences to use commas, colons, semicolons, or periods instead. Zero em dashes preferred; one at most.
 
 **Do not fabricate any experience, skill, or achievement not present in the template files.**
