@@ -60,8 +60,7 @@ Read the following files before doing any writing:
 1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting. **Use the `Read` tool directly on the file path — do NOT attempt shell-based extraction (pdftotext, python subprocess, etc.).** The Read tool handles PDFs natively; shell tools are not reliably installed.
 2. All files under `variable-input/career-goals/` — the applicant's career intentions
 3. All files recursively under `template/` — the applicant's full career data
-4. `blueprint.md` — assembly rules, layout, and constraints
-5. `formatting.md` — CSS class mapping and visual styles
+4. `formatting.md` — CSS class mapping and visual styles
 
 Extract from the template:
 - Applicant name, title, phone, email, and web/LinkedIn from `template/contact-info.txt`
@@ -143,7 +142,7 @@ Write the tailored resume to: `output/<base-name>.md`
 - `<p><span class="job-skills-title">Key Skills:</span> <span class="job-skills">skill, skill, ...</span></p>` immediately after each experience entry header, using the Key Skills from that entry's template file verbatim
 - Standard markdown list items (`-`) for bullet highlights (pandoc renders them as `<li>`)
 
-Follow the layout defined in `blueprint.md`:
+Assemble sections in this order:
 ```
 {applicant-name} | {applicant-title}
 t: {phone} | e: {email} | w: {web}
@@ -155,13 +154,15 @@ Skills
 {relevant skills, comma-separated or grouped}
 
 Experience
-{section-item-header} ({location}): {date-range}
+{section-item-header}
+{date-range} ({location})
 • {highlight}
 • {highlight}
 [repeat per included role]
 
 Education
-{section-item-header} ({location}): {date-range}
+{section-item-header}
+{date-range} ({location})
 • {highlight}
 
 Certifications
