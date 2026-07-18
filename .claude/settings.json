@@ -5,7 +5,10 @@
       "Edit(output/*)",
       "Bash(pandoc output/*)",
       "Bash(mdls *)",
-      "Bash(shasum *)"
+      "Bash(shasum *)",
+      "Bash(mdimport output/*)",
+      "Bash(mkdir -p output)",
+      "Bash(pdfinfo output/*)"
     ]
   }
 }
