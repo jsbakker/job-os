@@ -43,7 +43,7 @@ claude
 ```bash
 /tailor-resume <name-of-job-desctiption-file>
 ```
-6. Review the claude output for job match and ATS validation.
+6. Review the claude output for job match, suggested asking salary, and ATS validation.
 7. View the output PDF in the resulting `output` folder.
 
 
@@ -63,7 +63,8 @@ root
 │  └─ publications.md
 ├─ variable-input
 │  ├─ career-goals
-│  └─ job-descriptions
+│  ├─ job-descriptions
+│  └─ salary-expectations.md
 └─ README.md
 ```
 
@@ -104,6 +105,17 @@ One or many career goals, combined or as standalone career paths, should be spec
 Place job descrptions here. They can be markdown, plain text, or a PDF.
 
 Using a link to an online job posting is not recommended, as some sites block robots 
+
+### variable-input/salary-expectations.md
+Optional. Your current salary and/or minimum/target compensation, e.g.:
+```
+Current salary: $110,000
+Minimum acceptable: $120,000
+Target range: $130,000 - $150,000
+Location: Remote (Canada)
+Currency: CAD
+```
+If present, the skill treats "Minimum acceptable" as a floor the suggested asking salary won't go below, and "Currency" as the reporting currency. If absent, the skill infers currency from the job posting (if it states one) or the applicant's location, and never defaults to USD. The asking-salary suggestion itself is computed from the job posting, researched market data, and job-fit score.
 
 ### README.md
 This current file.

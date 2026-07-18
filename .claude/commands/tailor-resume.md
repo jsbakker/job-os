@@ -30,8 +30,11 @@ shasum -a 256 blueprint.md formatting.md \
   template/certifications.md template/education.md template/publications.md \
   template/experience/*.md \
   variable-input/career-goals/*.md \
-  "variable-input/job-descriptions/$ARGUMENTS"
+  "variable-input/job-descriptions/$ARGUMENTS" \
+  $(ls variable-input/salary-expectations.md 2>/dev/null)
 ```
+
+`variable-input/salary-expectations.md` is optional — the `ls ... 2>/dev/null` glob contributes nothing if it doesn't exist, so its absence never breaks the hash comparison.
 
 Compare each hash to the manifest. If **all hashes match**, check whether the cover letter files also exist:
 
@@ -61,6 +64,15 @@ Read the following files before doing any writing:
 2. All files under `variable-input/career-goals/` — the applicant's career intentions
 3. All files recursively under `template/` — the applicant's full career data
 4. `formatting.md` — CSS class mapping and visual styles
+5. `variable-input/salary-expectations.md` — if present, the applicant's current salary and/or minimum/target compensation. Optional; skip silently if absent. Freeform, e.g.:
+   ```
+   Current salary: $110,000
+   Minimum acceptable: $120,000
+   Target range: $130,000 - $150,000
+   Location: Remote (Canada)
+   Currency: CAD
+   ```
+   The `Currency` field, if present, takes priority for all salary figures in Step 2c (see that step's currency rule below).
 
 Extract from the template:
 - Applicant name, title, phone, email, and web/LinkedIn from `template/contact-info.txt`
@@ -125,6 +137,45 @@ Record each dimension score and rationale. These will be reported in Step 11.
 - 55–69: Solid match with notable gaps — worth applying; be transparent about growth areas.
 - 40–54: Stretch role — apply only if genuinely interested; cover letter must compensate.
 - Under 40: Reach application — significant gaps; apply selectively.
+
+---
+
+## Step 2c — Asking Salary Analysis
+
+This step produces a report-only recommendation — it does not appear on the resume or cover letter. Never fabricate a precise, unsourced number; every figure must trace back to either the job posting, a cited web search, or the applicant's own stated expectations.
+
+1. **Determine the reporting currency.** Never assume USD or any other currency by default — derive it:
+   - If `variable-input/salary-expectations.md` has a `Currency` field, that's the applicant's currency for all figures the applicant side of this analysis.
+   - Otherwise, infer the applicant's local currency from their location (`contact-info.txt`'s location if stated, otherwise infer from the job posting's stated location/remote policy and flag the assumption).
+   - Use the job posting's own stated currency for the job's compensation anchor when it states one explicitly (look for an explicit code like USD/CAD/EUR, or contextual clues — company HQ, job location, "USD"/"CAD" in the text — since a bare "$" is ambiguous).
+   - Every dollar figure recorded in this step and reported in Step 11 must carry an explicit currency code (e.g., "$130,000 CAD"), never a bare "$".
+   - If the job's anchor currency differs from the applicant's local currency, flag it (see step 5) rather than silently converting — do not fabricate an exchange-rate conversion.
+
+2. **Read the applicant's floor, if provided.** If `variable-input/salary-expectations.md` exists, note the current salary, minimum acceptable, and/or target range (in the currency from step 1). This is a hard floor: the suggested range's low end must never be recommended below the applicant's stated minimum. If the file doesn't exist, there is no floor to enforce — proceed on computed value alone.
+
+3. **Establish the applicant's general market worth.** Independent of this specific job posting, determine what a candidate with this applicant's title, years of experience, seniority (reuse the Seniority Match reasoning from Step 2b), and core skills typically commands. Use `WebSearch` to find current data (prefer sources like levels.fyi, Glassdoor, Payscale, Bureau of Labor Statistics, or recent salary-survey aggregators; prefer results from the last ~2 years) for the applicant's location. Record this as the applicant's market-worth range, labeled with its currency code, with a cited source.
+
+4. **Establish the job's compensation anchor.**
+   - If the job posting states a salary or range explicitly, use it verbatim (currency and all) as the primary anchor — this is always preferred over research.
+   - If it doesn't, use `WebSearch` to find a market range for this specific title/level/location/company as posted, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
+
+5. **Position the ask within the anchor range**, using the Step 2b total score and the Transferable Skills sub-score:
+   - 85–100, strong transferable skills: top of the anchor range, or up to ~5–10% above it if the applicant's market-worth range sits clearly higher.
+   - 70–84: upper-middle of the anchor range.
+   - 55–69: middle of the anchor range.
+   - Under 55: lower-middle to low end of the anchor range.
+   - Do not inflate the number to force it up to the applicant's market worth if the job's anchor range is simply lower across the board — surface that as a flag instead (next step), don't mask it.
+   - If a floor from `salary-expectations.md` exists and the computed number falls below it, use the floor as the suggested low end and flag the conflict.
+   - If the job anchor and the applicant's market-worth figure ended up in different currencies (step 1 flagged a mismatch), position within the job anchor's own currency and range — don't mix figures from two currencies into one range.
+
+6. **Flag mismatches explicitly — do not smooth them over:**
+   - ⚠ **Pay cut risk:** the job's anchor range sits meaningfully (~10%+) below the applicant's market-worth range (only compare when both are in the same currency, or note that a currency difference makes the comparison approximate). State it plainly, especially if paired with a borderline Step 2b score.
+   - ⚠ **Below stated floor:** the job's anchor range can't support the minimum in `salary-expectations.md`.
+   - ⚠ **No salary data found:** neither the posting nor web search produced usable compensation data (ambiguous location, obscure title, etc.) — say so rather than inventing a number, and omit the suggested range from Step 11.
+   - ⚠ **Location assumed:** the applicant's location wasn't stated in `contact-info.txt` and had to be inferred.
+   - ⚠ **Currency mismatch:** the job's anchor currency differs from the applicant's local currency — note both currencies explicitly and that the comparison is approximate absent a real conversion.
+
+7. Record: the suggested asking range (with currency code), the anchor source (posted vs. researched, with citation), the applicant's market-worth range (with currency code and citation), the positioning rationale, and any flags. These are reported in Step 11 — do not write them into the resume or cover letter.
 
 ---
 
@@ -210,23 +261,26 @@ If pandoc or weasyprint is not installed, stop and tell the user:
 Missing dependency. Install with: brew install pandoc weasyprint
 ```
 
+A `WARNING: Ignored overflow-x: auto at ...` line from weasyprint is expected and harmless — it comes from pandoc's own default template CSS, not from `formatting.md` or `resume-style.css`. Do not investigate or try to fix it.
+
 ---
 
 ## Step 7 — Validate Page Count (≤ 2 pages)
 
-Check the page count of the generated PDF. Use the first method that works:
+Check the page count of the generated PDF using `mdimport` + `mdls` — this is the primary method on this project's dependency set (only `pandoc`/`weasyprint` are documented as installed; do not assume `poppler`/`pdfinfo` is present):
 
 ```bash
-# Method 1: pdfinfo (install with: brew install poppler)
-pdfinfo output/<base-name>.pdf | grep "Pages:"
-```
-
-```bash
-# Method 2: mdimport + mdls (reliable on macOS, no install needed)
 # mdimport forces an immediate Spotlight index of the file, making mdls accurate.
 # Do NOT use mdls alone — it reads Spotlight's async index and will return a stale
 # count for a newly-generated PDF.
 mdimport output/<base-name>.pdf && mdls -name kMDItemNumberOfPages output/<base-name>.pdf
+```
+
+Spotlight indexing is asynchronous even after `mdimport`, so the immediately-following `mdls` occasionally returns `(null)` on the first try (this happens intermittently, not on every run). **If it returns `(null)` or empty, retry the same `mdls` command once or twice** — no `mdimport` re-run needed — before concluding something is wrong.
+
+If `pdfinfo` happens to be installed (`command -v pdfinfo`), it's a faster one-shot alternative with no retry needed:
+```bash
+pdfinfo output/<base-name>.pdf | grep "Pages:"
 ```
 
 **If the PDF exceeds 2 pages**, trim content in the markdown and regenerate:
@@ -318,7 +372,7 @@ Then generate the PDF:
 pandoc output/<base-name>-cover-letter.md -o output/<base-name>-cover-letter.pdf --pdf-engine=weasyprint -c output/resume-style.css
 ```
 
-Check the page count using the same approach as Step 7:
+Check the page count using the same method and retry-on-`(null)` guidance as Step 7:
 ```bash
 mdimport output/<base-name>-cover-letter.pdf && mdls -name kMDItemNumberOfPages output/<base-name>-cover-letter.pdf
 ```
@@ -337,7 +391,8 @@ shasum -a 256 blueprint.md formatting.md \
   template/certifications.md template/education.md template/publications.md \
   template/experience/*.md \
   variable-input/career-goals/*.md \
-  "variable-input/job-descriptions/$ARGUMENTS"
+  "variable-input/job-descriptions/$ARGUMENTS" \
+  $(ls variable-input/salary-expectations.md 2>/dev/null)
 ```
 
 Write the result as JSON to `output/<base-name>.manifest`:
@@ -388,6 +443,17 @@ Job match score: <total>/100 — <interpretation label>
 Keywords matched from job description: <list the matched keywords>
 Experience entries included: <list the roles included>
 Experience entries excluded: <list any roles omitted and why>
+
+Suggested asking salary: <range with currency code from Step 2c, e.g. "$130,000 - $145,000 CAD"> [or: "Not enough data to suggest a range — see flags below" if step 2c found no usable data]
+  Anchor        : <"Posted range: $X - $Y <currency>" or "Researched range for <title/level/location>: $X - $Y <currency> (source: <cite>)">
+  Market worth  : <applicant's general market-worth range, with currency code> (source: <cite>)
+  Rationale     : <one line tying the position within the range to the fit score and transferable skills>
+[If salary-expectations.md was found:]
+  Applicant floor respected: <minimum from variable-input/salary-expectations.md>
+[If any salary flags exist:]
+  ⚠ <salary flag 1>
+  ⚠ <salary flag 2>
+  ...
 [If any ATS warnings exist:]
 
 ATS warnings (<N>):
@@ -396,4 +462,4 @@ ATS warnings (<N>):
   ...
 ```
 
-Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings.
+Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit salary flag lines if step 2c raised none.
