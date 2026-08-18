@@ -1,2 +1,5 @@
 output/
 variable-input/job-descriptions/
+.env
+.venv-tools/
+scripts/__pycache__

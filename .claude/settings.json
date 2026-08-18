@@ -3,12 +3,20 @@
     "allow": [
       "Write(output/*)",
       "Edit(output/*)",
+      "Write(variable-input/job-descriptions/*)",
+      "Write(tracking/*)",
+      "Edit(tracking/*)",
       "Bash(pandoc output/*)",
       "Bash(mdls *)",
       "Bash(shasum *)",
       "Bash(mdimport output/*)",
       "Bash(mkdir -p output)",
-      "Bash(pdfinfo output/*)"
+      "Bash(mkdir -p tracking)",
+      "Bash(pdfinfo output/*)",
+      "Bash(python3 scripts/find_jobs.py *)",
+      "Bash(python3 scripts/import_numbers_tracking.py *)",
+      "WebFetch",
+      "WebSearch"
     ]
   }
 }

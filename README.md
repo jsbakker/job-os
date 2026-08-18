@@ -33,7 +33,7 @@ To generate a resume:
 
 1. Populate your applicant information into the template as per the provided  "Project Structure" section below.
 2. Populate the career goals with your intentions. See `career-goals/goals.md`.
-3. Place a job descrption file in the `job-descriptions` folder. It can be markdown, plain text, or even a PDF.
+3. Place a job descrption file in the `job-descriptions` folder. It can be markdown, plain text, or even a PDF — or let `/find-job-descriptions` (below) find and download one for you.
 4. Open Claude Code in the root folder. E.g.:
 ```bash
 cd <path-to-repo>
@@ -45,6 +45,30 @@ claude
 ```
 6. Review the claude output for job match, suggested asking salary, and ATS validation.
 7. View the output PDF in the resulting `output` folder.
+8. Once you've submitted the application, record it:
+```bash
+/applied <name-of-job-desctiption-file>
+```
+
+### Finding jobs automatically
+
+`/find-job-descriptions [min-match-percent]` searches for live local postings (via the free Adzuna API), scores them against your resume, and auto-downloads strong matches (65% by default) into `variable-input/job-descriptions/`, skipping anything already logged in `tracking/`:
+```bash
+/find-job-descriptions
+/find-job-descriptions 60   # loosen the threshold
+```
+One-time setup: sign up for a free key at [developer.adzuna.com](https://developer.adzuna.com/), then create a `.env` file (git-ignored) in the repo root:
+```
+ADZUNA_APP_ID=your_app_id
+ADZUNA_APP_KEY=your_app_key
+```
+Edit `variable-input/job-search-preferences.md` to set your target title keywords and location.
+
+The report is split into a main ranked list and an "outside your typical pattern" section, based on `tracking/learned-preferences.md` — a profile of what you actually apply for, learned from `tracking/applications.ndjson` and your career goals. It never changes the job-match score itself (that stays identical to what `/tailor-resume` would compute), it just keeps off-pattern reaches from cluttering the main list. Run it explicitly (or let it build itself automatically on first use):
+```bash
+/learn-preferences
+```
+It's safe to hand-edit `tracking/learned-preferences.md` afterward — the next refresh detects manual changes and asks before overwriting them.
 
 
 ## Project Structure
@@ -53,6 +77,9 @@ root
 ├─ blueprint.md
 ├─ CLAUDE.md
 ├─ formatting.md
+├─ scripts
+│  ├─ find_jobs.py
+│  └─ import_numbers_tracking.py
 ├─ template
 │  ├─ all-skills.md
 │  ├─ certifications.md
@@ -61,9 +88,16 @@ root
 │  ├─ experience/
 │  |  └─ <YYYY-MM_YYYY-MM>.md
 │  └─ publications.md
+├─ tracking
+│  ├─ applications.ndjson
+│  ├─ applications.md
+│  ├─ applications.tsv
+│  ├─ learned-preferences.md
+│  └─ .learned-preferences.hash
 ├─ variable-input
 │  ├─ career-goals
 │  ├─ job-descriptions
+│  ├─ job-search-preferences.md
 │  └─ salary-expectations.md
 └─ README.md
 ```
@@ -105,6 +139,31 @@ One or many career goals, combined or as standalone career paths, should be spec
 Place job descrptions here. They can be markdown, plain text, or a PDF.
 
 Using a link to an online job posting is not recommended, as some sites block robots 
+
+### variable-input/job-search-preferences.md
+Used by `/find-job-descriptions`: title keywords to match (any one), target location(s), and optional exclusions. Edit freely; never overwritten by the command.
+
+### scripts/find_jobs.py
+Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search-seen.json`) so repeated searches don't re-fetch or re-score the same posting. Invoked by `/find-job-descriptions`, not run directly.
+
+### scripts/import_numbers_tracking.py
+One-time migration tool that imports a legacy `JobApplicationTrackingLatest.numbers` spreadsheet into `tracking/applications.ndjson`. Requires the `numbers-parser` package — install it in an isolated virtualenv (`python3 -m venv .venv-tools && ./.venv-tools/bin/pip install numbers-parser`) rather than your main Python install.
+
+### tracking/applications.ndjson, applications.md, applications.tsv
+The job-application log is **one dataset in three files**, not three separately-maintained trackers:
+
+- `applications.ndjson` — the only file `/applied` writes to directly. One JSON object per line, one row per application, append-only. This is the source of truth.
+- `applications.tsv` — tab-separated export, fully regenerated from the ndjson on every `/applied` run. Opens directly in Excel/Numbers (File > Open), which is what makes the log usable outside Claude Code. Tab-delimited rather than CSV specifically because job titles can contain commas.
+- `applications.md` — Markdown table, also fully regenerated on every run. For reading the log in Claude Code or on GitHub without opening a spreadsheet app.
+
+Because `.md` and `.tsv` are always rewritten in full from `.ndjson` rather than edited incrementally, they can't drift out of sync with it — but this does mean every `/applied` call touches all three files.
+
+Each row: `date_applied`, `company`, `position_title`, `job_id`, `application_status`, `apply_method`, `job_posting_url`, `recommended_ask` (the suggested ask from `/tailor-resume`'s Step 2c), `salary_range` (the job posting's own stated range, or a Glassdoor/researched estimate if the posting didn't state one — not the same figure as `recommended_ask`), `glassdoor_rating` (company's overall rating out of 5.0, looked up once per company and reused across repeat applications), `match_score`, `resume_file`, `cover_letter_file`, `source`. Fields `/applied` can't determine (no `/tailor-resume` run yet, no Glassdoor listing found, etc.) are left `null` rather than guessed.
+
+### tracking/learned-preferences.md, .learned-preferences.hash
+A profile of revealed job preferences, built by `/learn-preferences` from `applications.ndjson` + `variable-input/career-goals/*.md`, and consulted by `/find-job-descriptions` to decide what belongs in the main ranked report versus the "outside your typical pattern" section. It never adjusts the job-match score itself — only where a candidate is *displayed*, and a score of 70+ always lands in the main list regardless of pattern fit, so a strong rubric match can never be hidden by a behavioral guess. Confidence is weighted: patterns backed by `match_score`-scored applications outrank ones inferred from title text alone, and a single old instance is labeled a weak signal rather than a confirmed pattern. Refreshes automatically after every `/applied`, and self-bootstraps on first `/find-job-descriptions` run if it doesn't exist yet.
+
+It's meant to be hand-edited if the AI's inferred pattern is wrong. `.learned-preferences.hash` is a small sidecar (the SHA-256 of the last auto-written content) that lets the next refresh detect manual edits and ask before overwriting, instead of silently clobbering them.
 
 ### variable-input/salary-expectations.md
 Optional. Your current salary and/or minimum/target compensation, e.g.:

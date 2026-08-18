@@ -86,16 +86,16 @@ Extract from the template:
 
 Using the job description and career goals as filters:
 
-- Write a 2-3 sentence summary. Each sentence must be short and independently scannable — no run-on sentences. The summary is a value statement, not a narrative: it should read like a tight professional hook, not a mini cover letter. Save storytelling and role-specific context for the cover letter. Write in **first person** ("I have…", "My background…", "I bring…") — never refer to the applicant by name or in the third person. Avoid em dashes (—) entirely; use commas, colons, or periods instead. Zero em dashes preferred; one at most.
+- Write a 2-3 sentence summary. Each sentence must be short and independently scannable — no run-on sentences. The summary is a value statement, not a narrative: it should read like a tight professional hook, not a mini cover letter. Save storytelling and role-specific context for the cover letter. Write in **first person** ("I have…", "My background…", "I bring…") — never refer to the applicant by name or in the third person. Avoid em dashes (—) entirely; use commas, colons, or periods instead. Zero em dashes preferred; one at most. Do not overqualify the candidate by emphasizing "18 years of experience" when the JD is asking for 5.
 - **Before making any claim about years or depth in a specific technology**, verify it against the experience entries. A language counts toward experience only in roles where it appears in that entry's Key Skills. Do not aggregate loosely — check each role.
 - Select skills from `template/all-skills.md` that match or complement keywords in the job description. Preserve exact terminology from the job posting where it matches reality.
 - For each experience entry, decide whether to include it:
-  - Work from the last 10 years: include with the most relevant highlights.
+  - Work from the last 12 years: include with the most relevant highlights.
   - Try not to cut back on the recent experience if you're not running out of the 2-page space. Unless the experiece hurts for the job description.
-  - Work older than 10 years: include only if directly relevant; reduce bullet count.
+  - Work older than 12 years: include only if directly relevant; reduce bullet count.
   - **Do not drop an entry entirely if doing so creates a chronological gap.** Instead, reduce its bullets to the 1–2 most transferable highlights.
   - If an entry has too many bullets, keep only those most aligned with the job description and career goals.
-- Keep bullet point text verbatim from the template unless rephrasing is necessary to improve fit — and only rephrase what is already true.
+- Keep bullet point text close to verbatim from the template unless rephrasing or extra context is necessary to improve the job fit — and only rephrase what is already true.
 - Include education, certifications, and publications if relevant to the role. Always include a References line: "Available upon request."
 
 **Do not fabricate, embellish, or hallucinate any skill, title, date, or achievement.**
@@ -339,6 +339,7 @@ Write a tailored cover letter to `output/<base-name>-cover-letter.md`. The resum
 - Closing: Express genuine enthusiasm, invite next steps, and sign off. One short paragraph.
 - Total length: 3–4 paragraphs, strictly 1 page when rendered as PDF.
 - Tone: confident, specific, human. No buzzwords, no filler phrases ("I am a passionate team player who thrives in…").
+- Avoid repeating the same sentence template (e.g., "That [X] is the kind of [Y]…", "Not just [X], but [Y]…") more than once in the letter — reusing a construction across paragraphs is a tell that the letter is AI-generated. Vary sentence structure paragraph to paragraph.
 - Voice: **first person throughout** — "I built…", "My work on…", "I am looking for…". Never refer to the applicant by name or in the third person.
 - Avoid em dashes (—) throughout the letter. Restructure sentences to use commas, colons, semicolons, or periods instead. Zero em dashes preferred; one at most.
 
@@ -405,12 +406,26 @@ Write the result as JSON to `output/<base-name>.manifest`:
     "cover_letter_markdown": "output/<base-name>-cover-letter.md",
     "cover_letter_pdf": "output/<base-name>-cover-letter.pdf"
   },
+  "job_match": {
+    "total": <Step 2b total score, integer>,
+    "skill_overlap": <Step 2b Skill Overlap score>,
+    "experience_relevance": <Step 2b Experience Relevance score>,
+    "seniority_match": <Step 2b Seniority Match score>,
+    "transferable_skills": <Step 2b Transferable Skills score>,
+    "interpretation": "<Step 2b interpretation label, e.g. 'Strong match'>"
+  },
+  "suggested_asking_salary": "<Step 2c suggested asking range with currency code, e.g. '$130,000 - $145,000 CAD', or null if Step 2c found no usable data>",
+  "job_posting_salary_range": {
+    "range": "<Step 2c's compensation anchor from its step 4, e.g. '$120,000 - $150,000 CAD', or null>",
+    "source": "<'posted' if the job listing itself stated it, 'researched' if Step 2c had to look it up, or null>"
+  },
   "inputs": {
     "<file-path>": "<sha256>",
     ...
   }
 }
 ```
+The `job_match`, `suggested_asking_salary`, and `job_posting_salary_range` fields persist the Step 2b/2c results computed earlier in this run — they are not recomputed here, just carried into the manifest so other commands (e.g. `/applied`) can read them without re-deriving. `job_posting_salary_range` is the raw anchor (what the market/posting says); `suggested_asking_salary` is the recommendation positioned within it — they are not the same number.
 
 ---
 
