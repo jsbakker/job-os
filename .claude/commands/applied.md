@@ -9,6 +9,33 @@ You are maintaining the applicant's job-application tracking log. Every applicat
 
 ---
 
+## Help Check
+
+If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
+
+```
+/applied — Records that you applied to a job, appending one row to tracking/applications.ndjson and refreshing the derived tracking views and learned-preferences profile.
+
+Usage:
+  /applied <job-description-file>
+
+What it does:
+  - Reads the job description from variable-input/job-descriptions/ and extracts company/title/req-ID
+  - Auto-fills match score, suggested ask, and resume/cover-letter paths from /tailor-resume's manifest, if one exists for this job
+  - Appends exactly one new row to tracking/applications.ndjson with application_status set to "Applied"
+  - Regenerates tracking/applications.md and .tsv, and refreshes tracking/learned-preferences.md
+
+Gotchas:
+  - Creates a new row every time — it never edits an existing one (that's /update-status's job); if a row for the same company+title already exists, it asks you to confirm before adding a look-alike duplicate
+  - Match score, suggested ask, and resume links stay null if /tailor-resume hasn't been run for this job yet
+  - Asks you directly for apply_method/job_id if they're not obvious from the posting text, rather than guessing
+
+Example:
+  /applied Acme-Corp-Staff-Software-Engineer.md
+```
+
+---
+
 ## Step 1 — Resolve the Job Description
 
 Read `variable-input/job-descriptions/$ARGUMENTS`. Extract, if present in the text: company name, job/position title, source URL, and a company-issued req/job ID.

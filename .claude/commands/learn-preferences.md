@@ -7,6 +7,34 @@ Analyze the applicant's job-application history and career goals to build (or re
 
 ---
 
+## Help Check
+
+If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive), print the block below and stop. Do not run any other step. (This command takes no other arguments — anything else in `$ARGUMENTS` is ignored.)
+
+```
+/learn-preferences — Analyzes tracking/applications.ndjson and your career-goals files to build or refresh tracking/learned-preferences.md, the profile /find-job-descriptions uses to keep off-pattern reaches out of its main report.
+
+Usage:
+  /learn-preferences
+
+What it does:
+  - Reads every row in tracking/applications.ndjson plus all variable-input/career-goals/*.md files
+  - Derives confirmed patterns (seniority, languages, platforms), weaker single-instance signals, and notably absent categories (real opportunity, ~zero applications)
+  - Flags any clearly non-literal (joke/hyperbole) career-goals file instead of treating it as a real preference
+  - Writes tracking/learned-preferences.md and its .learned-preferences.hash sidecar
+
+Gotchas:
+  - Takes no real arguments — only "help" does anything special
+  - If tracking/learned-preferences.md was hand-edited since the last auto-write, it detects that via the hash sidecar and asks before overwriting instead of clobbering your edits
+  - Self-bootstraps automatically on the first /find-job-descriptions run if it's never been run — running it manually is for refreshing on demand, not required for first use
+  - Never adjusts /find-job-descriptions's scoring rubric — this file only affects which section a candidate is displayed in
+
+Example:
+  /learn-preferences
+```
+
+---
+
 ## Step 1 — Read Inputs
 
 1. `tracking/applications.ndjson` — every row (create nothing if it doesn't exist yet; report that there's no history to learn from and stop).

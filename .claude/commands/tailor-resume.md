@@ -9,6 +9,33 @@ You are an expert resume crafter and career coach. Follow every step below in or
 
 ---
 
+## Help Check
+
+If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
+
+```
+/tailor-resume — Builds a tailored, ATS-friendly resume and cover letter (as Markdown + PDF) for one specific job posting, using only facts already present in template/, and reports a 0-100 job-match score plus a suggested asking salary.
+
+Usage:
+  /tailor-resume <job-description-file>
+
+What it does:
+  - Reads the job description from variable-input/job-descriptions/, plus your full template/ career data and career-goals
+  - Selects and lightly reorders (never fabricates) skills, experience bullets, and education to fit the posting
+  - Renders output/<base-name>.md/.pdf and a matching cover letter, and writes a .manifest with the job-match score and salary analysis
+  - Runs ATS structure/keyword checks against the rendered PDF before reporting success
+
+Gotchas:
+  - Output is hard-capped at 2 pages — it auto-trims content (oldest/least-relevant first) until it fits
+  - Never invents a skill, title, date, or achievement not already in template/ — a real gap stays a gap
+  - If none of the inputs changed since the last run for this job, it skips straight to reporting the existing output instead of regenerating
+
+Example:
+  /tailor-resume Acme-Corp-Staff-Software-Engineer.md
+```
+
+---
+
 ## Step 0 — Stale Check
 
 Derive the output base name using the same normalization rule defined in Step 3. Run this exact command to compute it:

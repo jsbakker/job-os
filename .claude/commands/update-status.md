@@ -11,6 +11,34 @@ You are updating one field on an existing row in `tracking/applications.ndjson`.
 
 ---
 
+## Help Check
+
+Check this **before** applying the first-token/rest-of-string split described above. If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) **in its entirety** — not just its first token — print the block below and stop. Do not run any other step.
+
+```
+/update-status — Appends a new stage to an existing application's status in tracking/applications.ndjson (e.g. turning "Applied" into "Applied - Screening interview (Aug 12)"), after showing you the exact resulting text and getting confirmation.
+
+Usage:
+  /update-status <job-description-file> <new-status-text>
+
+What it does:
+  - Locates the matching row in tracking/applications.ndjson using the job-description file (matches on resume/cover-letter filename, req ID, or company+title — asks you to pick if more than one row matches, e.g. after a reapply)
+  - Builds the proposed new application_status string, adding today's date to the new stage if you didn't already include one
+  - Shows you that exact string and waits for confirmation before writing anything
+  - Updates only that one field on that one row, then regenerates tracking/applications.md and .tsv
+
+Gotchas:
+  - Never writes without confirmation first — nothing is saved until you approve the shown string
+  - Never guesses which row to update — if more than one matches, it asks; if none match, it stops rather than creating a new row (run /applied first)
+  - Doesn't refresh tracking/learned-preferences.md — a status change carries no new title/language/seniority signal
+
+Examples:
+  /update-status Acme-Corp-Staff-Software-Engineer.md Screening interview
+  /update-status Acme-Corp-Staff-Software-Engineer.md Not Selected
+```
+
+---
+
 ## Step 1 — Resolve the Job Description
 
 Read `variable-input/job-descriptions/<filename>`. Extract, if present in the text: company name, position title, and a company-issued req/job ID.

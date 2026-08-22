@@ -9,6 +9,35 @@ You are an expert technical recruiter working on the applicant's behalf. Follow 
 
 ---
 
+## Help Check
+
+Check this **before** attempting to parse `$ARGUMENTS` as a number. If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive), print the block below and stop. Do not run any other step.
+
+```
+/find-job-descriptions — Searches Adzuna for live local job postings matching your preferences and resume, scores each one with the same rubric /tailor-resume uses, auto-downloads strong matches, and reports ranked results split by your revealed application preferences.
+
+Usage:
+  /find-job-descriptions [min-match-percent]
+
+What it does:
+  - Builds a search from variable-input/job-search-preferences.md (title keywords, location, exclusions)
+  - Fetches candidates via scripts/find_jobs.py, fetches full posting text, and scores each against your template/ + career-goals using tailor-resume's job-match rubric
+  - Auto-downloads full-text candidates scoring at or above the threshold into variable-input/job-descriptions/
+  - Reports a "Main ranked matches" list plus a separate "Outside your typical pattern" section, grounded in tracking/learned-preferences.md
+
+Gotchas:
+  - Requires a free Adzuna API key in a root .env file — Step 0 explains setup if it's missing
+  - min-match-percent defaults to 65 if omitted or not a number 0-100
+  - Score math is never adjusted by learned preferences — only which section a candidate is displayed in changes; a score of 70+ always lands in the main list regardless
+  - Never auto-saves a snippet-only posting (no full text fetched), no matter how high it scores
+
+Examples:
+  /find-job-descriptions
+  /find-job-descriptions 50
+```
+
+---
+
 ## Step 0 — Setup Check
 
 Confirm Adzuna credentials are configured without ever printing their values:
