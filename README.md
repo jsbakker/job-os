@@ -49,6 +49,12 @@ claude
 ```bash
 /applied <name-of-job-desctiption-file>
 ```
+9. As the application progresses (screening call, technical round, rejection, offer...), log each stage:
+```bash
+/update-status <name-of-job-desctiption-file> Screening interview
+/update-status <name-of-job-desctiption-file> Not Selected
+```
+It always shows you the exact resulting status string (including any date it's proposing to add) before writing anything, so you can confirm, correct the date, or cancel.
 
 ### Finding jobs automatically
 
@@ -159,6 +165,8 @@ The job-application log is **one dataset in three files**, not three separately-
 Because `.md` and `.tsv` are always rewritten in full from `.ndjson` rather than edited incrementally, they can't drift out of sync with it — but this does mean every `/applied` call touches all three files.
 
 Each row: `date_applied`, `company`, `position_title`, `job_id`, `application_status`, `apply_method`, `job_posting_url`, `recommended_ask` (the suggested ask from `/tailor-resume`'s Step 2c), `salary_range` (the job posting's own stated range, or a Glassdoor/researched estimate if the posting didn't state one — not the same figure as `recommended_ask`), `glassdoor_rating` (company's overall rating out of 5.0, looked up once per company and reused across repeat applications), `match_score`, `resume_file`, `cover_letter_file`, `source`. Fields `/applied` can't determine (no `/tailor-resume` run yet, no Glassdoor listing found, etc.) are left `null` rather than guessed.
+
+`application_status` is the one field that changes after the row is written: `/applied` initializes it to `"Applied"`, and `/update-status <job-description-file> <text>` appends further stages to it as a running, hyphen-delimited list (e.g. `"Applied - Screening interview (Aug 12) - Not Selected (Aug 21)"`). This is the single narrow exception to the log being append-only — everything else about a row is fixed once written.
 
 ### tracking/learned-preferences.md, .learned-preferences.hash
 A profile of revealed job preferences, built by `/learn-preferences` from `applications.ndjson` + `variable-input/career-goals/*.md`, and consulted by `/find-job-descriptions` to decide what belongs in the main ranked report versus the "outside your typical pattern" section. It never adjusts the job-match score itself — only where a candidate is *displayed*, and a score of 70+ always lands in the main list regardless of pattern fit, so a strong rubric match can never be hidden by a behavioral guess. Confidence is weighted: patterns backed by `match_score`-scored applications outrank ones inferred from title text alone, and a single old instance is labeled a weak signal rather than a confirmed pattern. Refreshes automatically after every `/applied`, and self-bootstraps on first `/find-job-descriptions` run if it doesn't exist yet.
