@@ -1,2 +1,2 @@
-# Certified Vibe Coder
-- 2025, University of Slop, Online
+# AWS Certified Developer – Associate
+- 2024, Amazon Web Services
