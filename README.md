@@ -1,5 +1,26 @@
-# Agentic Resume Blueprint
-A templated blueprint to tailor your resume to specific job descriptions. This project uses agentic AI to build a specialized version of your resume from the modularized template.
+# Resume Blueprint
+The job search in 2026 is broken and applicants can feel powerless in an opaque system that often works against them. It's time to change that.
+
+## TL;DR
+This project leverages agentic AI (Claude) to put the power back into the job seeker's hands. This repo provides a structured layout, a bluepreint, a data template, and several Claude commands that help with the following:
+
+- Helps tailor resumes for specific job descriptions without embellishing*.
+- Helps find local job postings that match your career goals and salary expectations, while learning your job application patterns. WIP; YMMV.
+- Helps track the application status of your job search journey.
+
+\**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can prompt Claude to fix it.*
+
+### Quickstart
+- In a text editor, provide everything about your career in the `template` folder.
+- Add your goals to the `variable-input/career-goals` folder.
+- Optionally, add a `variable-input/salary-expectations.md`.
+- Start a Claude Code session in the root folder.
+- Run `/find-job-descriptions` to find matches.
+- Run `/tailor-resume [job description name]` to tailor to a specific job.
+- Apply for the job manually using the tailored resume in the `/output` folder.
+- Run `/applied [job description name]` to track where you appied.
+- Run `/prep-interview` to find gaps to work on once an interview is scheduled.
+- Run `/update-status [job description name]` to update your application progress.
 
 
 ## Problem Statement
@@ -20,8 +41,15 @@ Why would I need this, if LinkedIn has built-in AI that already does it? I've se
 If we prescribe a structure, format and style, and instruct AI using agent skills, we can put our own standards and quality measures on it. We can control many elements of a resume to be deterministic.
 
 
+### Expectation Management
+There's no guarantee that your job application response or interview rate will increase. What it can do is save you time in tailoring resumes and help track applications.
+
+This is also based on real world use of a longer employment history. In a long and varied career, it can be more difficult to decide which bullet points are the most relevant. This may not be as helpful for applicants with shorter work experience or limited career information.
+
+
 ## Requirements
 - Text editor (preferably with Markdown support)
+- Claude Code (with a Claude account)
 - pandoc
 - weasyprint
 
@@ -196,3 +224,35 @@ If present, the skill treats "Minimum acceptable" as a floor the suggested askin
 
 ### README.md
 This current file.
+
+## Caveats / WIP / YMMV
+The resume layout and formatting is based on my own hand-designed resume, which has in the past landed six-fgure jobs, and in the current year has landed interviews at FAANG-level companies. Feel free to modify the `formatting.md` and `blueprint.md` files to your own preference.
+
+The `/tailor-resume` command has been through dogfooding for months, but hasn't gone through third-party testing. The cover letters coming out of here may sometimes use strong wording, overselling yourself. If you are not comfortable with that, don't use it.
+
+The other commands are even newer. Specifically, the `/find-job-descriptions` command needs more testing outside of my personalized job search preferences.
+
+## Troubleshooting
+> I keep getting prompted for permissions when tailoring my resume.
+
+Use Shift+Tab in Claude Code to cycle through modes to Auto Mode.
+
+
+> The `/tailor-resume` command wrote a resume summary (or cover letter) that I cannot defend in an interview.
+
+Prompt Claude code to correct the summary, mentioning which part is not factual. It can re-word it for you and re-generate a new .pdf with a new summary and the rest of the resume still intact. Same for the cover letter.
+
+
+> The `/tailor-resume` command excluded some of my work experience.
+
+To maximize the value of the limited bullet point space and keeping the resume under two pages, older experiences may be culled completely (only if it doesn't leave a chronological gap), especially when JD relevance is low. If you think this is a mistake, prompt Claude Code to include it.
+
+
+> The `/tailor-resume` command only added one bullet point for a position that I worked at for eight years.
+
+It is probably an older job with lower relevance. The tailoring prefers bullet space for newer positions and JD relevance. If there's still room on the second page, just prompt Claude code to add more bullets.
+
+
+> The `/find-job-descriptions` keeps pulling the same job postings.
+
+Depending on your `job-search-preferences.md` and `salary-expectations.md` content, you could be limiting the search. On top of that, it is for job postings in the last three weeks.
