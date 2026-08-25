@@ -17,6 +17,7 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 - Start a Claude Code session in the root folder.
 - Run `/find-job-descriptions` to find matches.
 - Run `/tailor-resume [job description name]` to tailor to a specific job.
+- (Optional, run once) If you already have an existing job-tracking file from before this repo, import it: `/import-applications <path-to-your-file>`.
 - Apply for the job manually using the tailored resume in the `/output` folder.
 - Run `/applied [job description name]` to track where you appied.
 - Run `/prep-interview` to find gaps to work on once an interview is scheduled.
@@ -112,6 +113,13 @@ The report is split into a main ranked list and an "outside your typical pattern
 ```
 It's safe to hand-edit `tracking/learned-preferences.md` afterward — the next refresh detects manual changes and asks before overwriting them.
 
+### Importing an existing tracking history
+If you already tracked applications before adopting this repo — a spreadsheet, a Word doc, a plain-text log, whatever — bring that history into `tracking/applications.ndjson` once, rather than starting from zero:
+```bash
+/import-applications <path-to-your-existing-tracking-file>
+```
+It reads the file's actual structure (Word, Excel, Apple Numbers, CSV, plain text, or Markdown are all supported) rather than assuming a fixed layout, shows you its inferred column mapping before processing anything, and skips any entry that looks like it's already logged. It always shows a full preview and asks for confirmation before appending anything — nothing is written until you approve it.
+
 
 ## Project Structure
 ```
@@ -121,8 +129,7 @@ root
 ├─ formatting.md
 ├─ job-tracker.html
 ├─ scripts
-│  ├─ find_jobs.py
-│  └─ import_numbers_tracking.py
+│  └─ find_jobs.py
 ├─ template
 │  ├─ all-skills.md
 │  ├─ certifications.md
@@ -187,13 +194,10 @@ Used by `/find-job-descriptions`: title keywords to match (any one), target loca
 ### scripts/find_jobs.py
 Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search-seen.json`) so repeated searches don't re-fetch or re-score the same posting. Invoked by `/find-job-descriptions`, not run directly.
 
-### scripts/import_numbers_tracking.py
-One-time migration tool that imports a legacy `JobApplicationTrackingLatest.numbers` spreadsheet into `tracking/applications.ndjson`. Requires the `numbers-parser` package — install it in an isolated virtualenv (`python3 -m venv .venv-tools && ./.venv-tools/bin/pip install numbers-parser`) rather than your main Python install.
-
 ### tracking/applications.ndjson
 The job-application log, and the sole source of truth for it — no separately-maintained exports. One JSON object per line, one row per application, append-only (`/applied` is the only command that adds a row). Browse it with `job-tracker.html` (below) rather than opening this file directly.
 
-Each row: `date_applied`, `company`, `position_title`, `job_id`, `application_status`, `apply_method`, `job_posting_url`, `recommended_ask` (the suggested ask from `/tailor-resume`'s Step 2c), `salary_range` (the job posting's own stated range, or a Glassdoor/researched estimate if the posting didn't state one — not the same figure as `recommended_ask`), `glassdoor_rating` (company's overall rating out of 5.0, looked up once per company and reused across repeat applications), `match_score`, `resume_file`, `cover_letter_file`, `source`. Fields `/applied` can't determine (no `/tailor-resume` run yet, no Glassdoor listing found, etc.) are left `null` rather than guessed.
+Each row: `date_applied`, `company`, `position_title`, `job_id`, `application_status`, `apply_method`, `job_posting_url`, `recommended_ask` (the suggested ask from `/tailor-resume`'s Step 2c), `salary_range` (the job posting's own stated range, or a Glassdoor/researched estimate if the posting didn't state one — not the same figure as `recommended_ask`), `glassdoor_rating` (company's overall rating out of 5.0, looked up once per company and reused across repeat applications), `match_score`, `resume_file`, `cover_letter_file`, `source`, `notes` (free-text catch-all, only populated when `/import-applications` finds source data with no better-fitting field; otherwise `null`). Fields `/applied` can't determine (no `/tailor-resume` run yet, no Glassdoor listing found, etc.) are left `null` rather than guessed.
 
 `application_status` is the one field that changes after the row is written: `/applied` initializes it to `"Applied"`, and `/update-status <job-description-file> <text>` appends further stages to it as a running, hyphen-delimited list (e.g. `"Applied - Screening interview (Aug 12) - Not Selected (Aug 21)"`). This is the single narrow exception to the log being append-only — everything else about a row is fixed once written.
 

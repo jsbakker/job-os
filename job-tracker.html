@@ -525,6 +525,7 @@
     parts.push(field('Resume', row.resume_file ? link(row.resume_file, 'Resume PDF') : dash()));
     parts.push(field('Cover Letter', row.cover_letter_file ? link(row.cover_letter_file, 'Cover Letter PDF') : dash()));
     parts.push(field('Source', row.source ? esc(row.source) : dash()));
+    parts.push(field('Notes', row.notes ? esc(row.notes) : dash()));
     return '<dl class="detail-grid">' + parts.join('') + '</dl>';
   }
 

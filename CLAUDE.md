@@ -30,6 +30,8 @@ Dependencies: `brew install pandoc weasyprint`
 
 `/applied <job-description-file>` records that the applicant applied to a job, appending one row to `tracking/applications.ndjson` (auto-filling match score and resume/cover-letter paths from `/tailor-resume`'s manifest when available), and refreshing the learned-preferences profile (below).
 
+`/import-applications <path-to-existing-tracking-file>` is a one-time-per-adopter onboarding command: it reads an arbitrary pre-existing tracker (Word, Excel, Apple Numbers, CSV, plain text, or Markdown) by inspecting its actual structure rather than assuming a fixed layout, maps whatever fields it finds onto the 14-field `applications.ndjson` schema (defaulting anything absent to `null` rather than guessing), shows the inferred mapping and a full preview for confirmation before writing anything, skips entries that already look logged (matched by `job_id` or `company`+`position_title`), and always appends — it never truncates or rewrites existing rows.
+
 `/update-status <job-description-file> <new-status-text>` appends a stage to that same application's `application_status` (e.g. turning `"Applied"` into `"Applied - Screening interview (Aug 12) - Not Selected (Aug 21)"`). It's the one narrow exception to `applications.ndjson` being append-only — only that one field on the matched row is touched, and only additively; nothing is ever removed. It always shows the exact resulting string (including any date it's proposing to add) and asks for confirmation before writing, rather than guessing or silently dating things "today." Doesn't refresh the learned-preferences profile — a status change carries no new title/language/seniority signal.
 
 `/learn-preferences` analyzes `tracking/applications.ndjson` + `variable-input/career-goals/*.md` to build `tracking/learned-preferences.md` — a profile of revealed preferences (seniority, languages, platforms, and notably *absent* categories) that `/find-job-descriptions` uses to keep off-pattern reaches out of the main report without touching the scoring rubric. Self-bootstraps on first `/find-job-descriptions` run if it doesn't exist yet, and auto-refreshes after every `/applied`. Hand-edits are protected: a `tracking/.learned-preferences.hash` sidecar detects manual changes and asks before overwriting rather than clobbering them.
@@ -46,7 +48,7 @@ Then open `http://localhost:8000/job-tracker.html`. Run the server from the repo
 
 `/prep-interview <job-description-file> [stage-override]` produces genuine interview coaching, not a cheat sheet: honest skill gaps and real stories to have ready, weighted to the applicant's current interview stage. It prefers a future-dated stage already logged via `/update-status` (e.g. `"Technical screen (Aug 26)"` logged ahead of time); failing that it predicts the likely next stage and says so explicitly rather than guessing silently. Fails fast with no output if the tracked status is already closed (`"Not Selected"`, `"Position Filled"`) or `"Offer Received"`. Unlike `/tailor-resume`, it's explicitly allowed to draw on each experience entry's `# Side Notes` section (tagged as off-resume background when it does) since spoken conversation isn't space-constrained the way a resume is. Writes `output/<base-name>-interview-prep.md`.
 
-Dependencies: none for recurring use (stdlib-only Python). The one-time historical import (`scripts/import_numbers_tracking.py`) needs `numbers-parser`, installed in an isolated `.venv-tools/` virtualenv rather than the system Python — see that script's docstring.
+Dependencies: none for recurring use (stdlib-only Python). `/import-applications` may install optional packages (`numbers-parser`, `openpyxl`, `xlrd`, or `python-docx`, depending on the source file's format) into an isolated `.venv-tools/` virtualenv on demand — never into the system Python.
 
 ## Architecture
 
@@ -60,7 +62,7 @@ The system separates static career data (template) from variable inputs (job con
 - **`variable-input/career-goals/`** — One or more `.md` files describing the applicant's intended direction. Combined with the job description to guide relevance filtering.
 - **`variable-input/job-search-preferences.md`** — Title keywords, target location(s), and exclusions used by `/find-job-descriptions`.
 - **`variable-input/job-descriptions/`** — Drop job posting files here before running (or let `/find-job-descriptions` download them for you).
-- **`scripts/`** — Standalone Python helpers invoked by slash commands: `find_jobs.py` (Adzuna search + seen-jobs ledger) and `import_numbers_tracking.py` (one-time legacy tracker migration).
+- **`scripts/`** — Standalone Python helpers invoked by slash commands: `find_jobs.py` (Adzuna search + seen-jobs ledger).
 - **`tracking/`** — Job application log: `applications.ndjson` (source of truth, one JSON object per row, browsable live via `job-tracker.html`), plus `learned-preferences.md` (revealed preferences, derived from the log + career goals) and its `.learned-preferences.hash` hand-edit-detection sidecar. Committed (unlike `output/`) since it's small, durable, personal history worth version-controlling.
 - **`output/`** — Generated markdown and PDF files, plus job-search working state (`job-search-candidates.json`, `job-search-seen.json`), land here (not committed).
 

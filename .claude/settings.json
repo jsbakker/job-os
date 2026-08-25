@@ -14,7 +14,11 @@
       "Bash(mkdir -p tracking)",
       "Bash(pdfinfo output/*)",
       "Bash(python3 scripts/find_jobs.py *)",
-      "Bash(python3 scripts/import_numbers_tracking.py *)",
+      "Bash(file *)",
+      "Bash(python3 -m venv .venv-tools)",
+      "Bash(./.venv-tools/bin/pip install *)",
+      "Bash(./.venv-tools/bin/python *)",
+      "Bash(textutil -convert txt *)",
       "WebFetch",
       "WebSearch"
     ]

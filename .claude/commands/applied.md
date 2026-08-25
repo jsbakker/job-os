@@ -95,7 +95,7 @@ This populates `glassdoor_rating` — the company's overall Glassdoor rating out
 Append exactly one line to `tracking/applications.ndjson` (create the file if it doesn't exist) with this shape:
 
 ```json
-{"date_applied": "<YYYY-MM-DD>", "company": "<company>", "position_title": "<title>", "job_id": "<id or null>", "application_status": "Applied", "apply_method": "<method>", "job_posting_url": "<url or null>", "recommended_ask": "<from suggested_asking_salary, or null>", "salary_range": "<from Step 4, or null>", "glassdoor_rating": "<from Step 5, or null>", "match_score": {"total": <n>, "skill_overlap": <n>, "experience_relevance": <n>, "seniority_match": <n>, "transferable_skills": <n>, "interpretation": "<label>"} or null, "resume_file": "<path or null>", "cover_letter_file": "<path or null>", "source": "<manual|Adzuna via /find-job-descriptions>"}
+{"date_applied": "<YYYY-MM-DD>", "company": "<company>", "position_title": "<title>", "job_id": "<id or null>", "application_status": "Applied", "apply_method": "<method>", "job_posting_url": "<url or null>", "recommended_ask": "<from suggested_asking_salary, or null>", "salary_range": "<from Step 4, or null>", "glassdoor_rating": "<from Step 5, or null>", "match_score": {"total": <n>, "skill_overlap": <n>, "experience_relevance": <n>, "seniority_match": <n>, "transferable_skills": <n>, "interpretation": "<label>"} or null, "resume_file": "<path or null>", "cover_letter_file": "<path or null>", "source": "<manual|Adzuna via /find-job-descriptions>", "notes": null}
 ```
 
 ---
