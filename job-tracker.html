@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Application Tracker</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --surface: #ffffff;
+    --surface-alt: #f2f3f5;
+    --border: #e0e1e5;
+    --text: #1c1e21;
+    --text-muted: #6b7076;
+    --accent: #3060d0;
+    --accent-soft: #e8eefc;
+    --header-bg: #ffffff;
+    --row-hover: #f0f4ff;
+    --error-bg: #fdecea;
+    --error-border: #f2b8b5;
+    --error-text: #7a1f1a;
+    --badge-bg: #3060d0;
+    --badge-text: #ffffff;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --surface: #1f2023;
+      --surface-alt: #232427;
+      --border: #34363a;
+      --text: #e7e8ea;
+      --text-muted: #9a9da2;
+      --accent: #6d94f5;
+      --accent-soft: #232c42;
+      --header-bg: #1f2023;
+      --row-hover: #232c42;
+      --error-bg: #3a2323;
+      --error-border: #6b3634;
+      --error-text: #f2b3ae;
+      --badge-bg: #6d94f5;
+      --badge-text: #101114;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  #app-count {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  header .spacer { flex: 1; }
+
+  #last-updated {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  button#refresh-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button#refresh-btn:hover { filter: brightness(1.08); }
+  button#refresh-btn:active { filter: brightness(0.95); }
+
+  main {
+    padding: 16px 20px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  #error-banner {
+    display: none;
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  #error-banner.visible { display: block; }
+  #error-banner code {
+    background: rgba(0,0,0,0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 860px;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-alt);
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    z-index: 5;
+  }
+
+  thead th.sortable { cursor: pointer; user-select: none; }
+  thead th.sortable:hover { color: var(--text); }
+
+  .sort-indicator { display: inline-block; width: 12px; opacity: 0.7; }
+
+  tbody td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr.app-row { cursor: pointer; }
+  tr.app-row:hover { background: var(--row-hover); }
+  tr.app-row.expanded { background: var(--accent-soft); }
+  tr.app-row:nth-child(4n+1):not(:hover):not(.expanded) { background: var(--surface); }
+
+  .col-chevron { width: 22px; }
+  .chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    color: var(--text-muted);
+  }
+  .chevron.open { transform: rotate(90deg); }
+
+  .col-position {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .col-status { white-space: nowrap; }
+
+  .status-badge {
+    display: inline-block;
+    margin-left: 6px;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+    vertical-align: middle;
+  }
+
+  .col-score, .col-job-id { font-variant-numeric: tabular-nums; }
+  .mono { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+
+  .muted { color: var(--text-muted); }
+
+  tr.detail-row td {
+    background: var(--surface-alt);
+    padding: 16px 24px 20px 40px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  dl.detail-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 18px;
+    row-gap: 8px;
+    margin: 0;
+    max-width: 900px;
+  }
+
+  dl.detail-grid dt {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding-top: 2px;
+    white-space: nowrap;
+  }
+
+  dl.detail-grid dd {
+    margin: 0;
+  }
+
+  ol.status-history {
+    margin: 0;
+    padding-left: 18px;
+  }
+  ol.status-history li { margin-bottom: 2px; }
+
+  .match-score-grid {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .ms-total {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  .ms-total .ms-label {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .ms-subscores {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 2px 18px;
+    font-size: 12.5px;
+  }
+  .ms-subscores strong { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+  .ms-interpretation {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    flex-basis: 100%;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Application Tracker</h1>
+  <span id="app-count"></span>
+  <div class="spacer"></div>
+  <span id="last-updated"></span>
+  <button id="refresh-btn" type="button">Refresh</button>
+</header>
+
+<main>
+  <div id="error-banner"></div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-chevron"></th>
+          <th class="sortable" data-key="date_applied">Date <span class="sort-indicator"></span></th>
+          <th class="sortable" data-key="company">Company <span class="sort-indicator"></span></th>
+          <th class="sortable" data-key="position_title">Position <span class="sort-indicator"></span></th>
+          <th class="sortable" data-key="status">Status <span class="sort-indicator"></span></th>
+          <th class="sortable" data-key="match_score">Match Score <span class="sort-indicator"></span></th>
+          <th class="sortable" data-key="glassdoor_rating">Glassdoor <span class="sort-indicator"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<footer>tracking/applications.ndjson &middot; auto-refreshes every 30s</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  const NDJSON_URL = 'tracking/applications.ndjson';
+  const POLL_INTERVAL_MS = 30000;
+
+  let allRows = [];
+  let lastRawText = null;
+  let sortKey = 'date_applied';
+  let sortDir = 'desc';
+  let openRowKey = null;
+
+  const tbodyEl = document.getElementById('tbody');
+  const errorEl = document.getElementById('error-banner');
+  const countEl = document.getElementById('app-count');
+  const updatedEl = document.getElementById('last-updated');
+  const refreshBtn = document.getElementById('refresh-btn');
+
+  // ---------- escaping ----------
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---------- parsing ----------
+
+  async function loadApplications() {
+    const res = await fetch(NDJSON_URL, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    }
+    const text = await res.text();
+    const rows = text
+      .split('\n')
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; })
+      .map(function (l) {
+        try { return JSON.parse(l); }
+        catch (e) { console.error('Skipping malformed ndjson line:', l, e); return null; }
+      })
+      .filter(function (r) { return r !== null; });
+    return { text: text, rows: rows };
+  }
+
+  // ---------- status helpers ----------
+
+  function statusSegments(status) {
+    return status
+      .split('\n')
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return s.length > 0; })
+      .map(function (s) { return s.replace(/^-\s*/, ''); });
+  }
+
+  function lastStatusSegment(status) {
+    const segs = statusSegments(status);
+    return segs.length ? segs[segs.length - 1] : status;
+  }
+
+  // ---------- row identity ----------
+
+  function rowKey(row) {
+    // job_id is included because two distinct applications can otherwise
+    // share the same date + company + title (confirmed in real data: two
+    // separate Microsoft "Senior Software Engineer" applications on the
+    // same day, distinguished only by job_id).
+    return row.date_applied + '|' + row.company + '|' + row.position_title + '|' + (row.job_id || '');
+  }
+
+  // ---------- sorting ----------
+
+  function compareNullable(aVal, bVal, dir) {
+    const aNull = aVal === null || aVal === undefined || Number.isNaN(aVal);
+    const bNull = bVal === null || bVal === undefined || Number.isNaN(bVal);
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+    const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+    return dir === 'asc' ? cmp : -cmp;
+  }
+
+  function getSortValue(row, key) {
+    switch (key) {
+      case 'date_applied': return row.date_applied;
+      case 'company': return row.company;
+      case 'position_title': return row.position_title;
+      case 'status': return lastStatusSegment(row.application_status);
+      case 'match_score': return row.match_score ? row.match_score.total : null;
+      case 'glassdoor_rating': return row.glassdoor_rating !== null && row.glassdoor_rating !== undefined
+        ? parseFloat(row.glassdoor_rating) : null;
+      default: return null;
+    }
+  }
+
+  function sortRows(rows) {
+    const copy = rows.slice();
+    const numericKeys = { match_score: true, glassdoor_rating: true };
+    copy.sort(function (a, b) {
+      const av = getSortValue(a, sortKey);
+      const bv = getSortValue(b, sortKey);
+      if (numericKeys[sortKey]) {
+        return compareNullable(av, bv, sortDir);
+      }
+      const cmp = String(av).localeCompare(String(bv));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('th.sortable').forEach(function (th) {
+      const indicator = th.querySelector('.sort-indicator');
+      if (th.dataset.key === sortKey) {
+        indicator.textContent = sortDir === 'asc' ? '▲' : '▼';
+        th.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : 'descending');
+      } else {
+        indicator.textContent = '';
+        th.removeAttribute('aria-sort');
+      }
+    });
+  }
+
+  document.querySelectorAll('th.sortable').forEach(function (th) {
+    th.addEventListener('click', function () {
+      const key = th.dataset.key;
+      if (key === sortKey) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortKey = key;
+        sortDir = (key === 'date_applied' || key === 'match_score' || key === 'glassdoor_rating') ? 'desc' : 'asc';
+      }
+      rerenderPreservingScroll();
+    });
+  });
+
+  // ---------- rendering: table row ----------
+
+  function renderRowCells(row) {
+    const key = rowKey(row);
+    const isOpen = key === openRowKey;
+    const segs = statusSegments(row.application_status);
+    const lastStatus = segs.length ? segs[segs.length - 1] : row.application_status;
+    const scoreVal = row.match_score ? row.match_score.total : null;
+
+    return '' +
+      '<td class="col-chevron"><span class="chevron' + (isOpen ? ' open' : '') + '">▸</span></td>' +
+      '<td class="col-date mono">' + esc(row.date_applied) + '</td>' +
+      '<td class="col-company">' + esc(row.company) + '</td>' +
+      '<td class="col-position" title="' + esc(row.position_title) + '">' + esc(row.position_title) + '</td>' +
+      '<td class="col-status">' + esc(lastStatus) +
+        (segs.length > 1 ? '<span class="status-badge" title="' + segs.length + ' status updates">' + segs.length + '</span>' : '') +
+      '</td>' +
+      '<td class="col-score">' + (scoreVal !== null ? scoreVal : '<span class="muted">—</span>') + '</td>' +
+      '<td class="col-glassdoor">' + (row.glassdoor_rating ? esc(row.glassdoor_rating) : '<span class="muted">—</span>') + '</td>';
+  }
+
+  // ---------- rendering: detail view ----------
+
+  function field(label, valueHtml) {
+    return '<dt>' + esc(label) + '</dt><dd>' + valueHtml + '</dd>';
+  }
+
+  function dash() {
+    return '<span class="muted">—</span>';
+  }
+
+  function link(href, text) {
+    return '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + esc(text) + ' ↗</a>';
+  }
+
+  function renderStatusHistory(status) {
+    const segs = statusSegments(status);
+    if (segs.length <= 1) {
+      return esc(segs.length ? segs[0] : status);
+    }
+    return '<ol class="status-history">' + segs.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>';
+  }
+
+  function renderMatchScore(ms) {
+    if (!ms) return dash();
+    return '' +
+      '<div class="match-score-grid">' +
+        '<div class="ms-total">' + ms.total + '<span class="ms-label">/100</span></div>' +
+        '<div class="ms-subscores">' +
+          '<div>Skill Overlap: <strong>' + ms.skill_overlap + '</strong>/30</div>' +
+          '<div>Experience Relevance: <strong>' + ms.experience_relevance + '</strong>/30</div>' +
+          '<div>Seniority Match: <strong>' + ms.seniority_match + '</strong>/20</div>' +
+          '<div>Transferable Skills: <strong>' + ms.transferable_skills + '</strong>/20</div>' +
+        '</div>' +
+        '<div class="ms-interpretation">' + esc(ms.interpretation) + '</div>' +
+      '</div>';
+  }
+
+  function renderDetail(row) {
+    const parts = [];
+    parts.push(field('Date Applied', esc(row.date_applied)));
+    parts.push(field('Company', esc(row.company)));
+    parts.push(field('Position', esc(row.position_title)));
+    parts.push(field('Job ID', row.job_id ? '<span class="mono">' + esc(row.job_id) + '</span>' : dash()));
+    parts.push(field('Application Status', renderStatusHistory(row.application_status)));
+    parts.push(field('Apply Method', esc(row.apply_method)));
+    parts.push(field('Job Posting', row.job_posting_url ? link(row.job_posting_url, 'View posting') : dash()));
+    parts.push(field('Recommended Ask', row.recommended_ask ? esc(row.recommended_ask) : dash()));
+    parts.push(field('Salary Range', row.salary_range ? esc(row.salary_range) : dash()));
+    parts.push(field('Glassdoor Rating', row.glassdoor_rating ? esc(row.glassdoor_rating) + ' / 5.0' : dash()));
+    parts.push(field('Match Score', renderMatchScore(row.match_score)));
+    parts.push(field('Resume', row.resume_file ? link(row.resume_file, 'Resume PDF') : dash()));
+    parts.push(field('Cover Letter', row.cover_letter_file ? link(row.cover_letter_file, 'Cover Letter PDF') : dash()));
+    parts.push(field('Source', row.source ? esc(row.source) : dash()));
+    return '<dl class="detail-grid">' + parts.join('') + '</dl>';
+  }
+
+  // ---------- render ----------
+
+  function render() {
+    const sorted = sortRows(allRows);
+    tbodyEl.innerHTML = '';
+    const frag = document.createDocumentFragment();
+
+    sorted.forEach(function (row) {
+      const key = rowKey(row);
+      const tr = document.createElement('tr');
+      tr.className = 'app-row' + (key === openRowKey ? ' expanded' : '');
+      tr.dataset.key = key;
+      tr.innerHTML = renderRowCells(row);
+      tr.addEventListener('click', function () { toggleDetail(key); });
+      frag.appendChild(tr);
+
+      if (key === openRowKey) {
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'detail-row';
+        const td = document.createElement('td');
+        td.colSpan = 7;
+        td.innerHTML = renderDetail(row);
+        detailTr.appendChild(td);
+        frag.appendChild(detailTr);
+      }
+    });
+
+    tbodyEl.appendChild(frag);
+    updateSortIndicators();
+    countEl.textContent = allRows.length + ' application' + (allRows.length === 1 ? '' : 's');
+  }
+
+  function rerenderPreservingScroll() {
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  }
+
+  function toggleDetail(key) {
+    openRowKey = (openRowKey === key) ? null : key;
+    rerenderPreservingScroll();
+  }
+
+  // ---------- errors ----------
+
+  function showError(err) {
+    errorEl.innerHTML =
+      '<strong>Couldn’t load <code>tracking/applications.ndjson</code></strong> (' + esc(err.message) + ').<br>' +
+      'Make sure you’re running <code>python3 -m http.server</code> from the repo root and opening this page via ' +
+      '<code>http://localhost:PORT/job-tracker.html</code> — not by double-clicking the file, and not from a different working directory.';
+    errorEl.classList.add('visible');
+  }
+
+  function hideError() {
+    errorEl.classList.remove('visible');
+    errorEl.innerHTML = '';
+  }
+
+  function updateLastUpdated() {
+    const now = new Date();
+    updatedEl.textContent = 'Updated ' + now.toLocaleTimeString();
+  }
+
+  // ---------- load orchestration ----------
+
+  async function fetchAndMaybeRender(force) {
+    try {
+      const result = await loadApplications();
+      const changed = result.text !== lastRawText;
+      if (force || changed) {
+        lastRawText = result.text;
+        allRows = result.rows;
+        hideError();
+        updateLastUpdated();
+        rerenderPreservingScroll();
+      }
+      return true;
+    } catch (e) {
+      if (lastRawText === null) {
+        showError(e);
+      } else {
+        console.error('Refresh failed:', e);
+      }
+      return false;
+    }
+  }
+
+  refreshBtn.addEventListener('click', function () { fetchAndMaybeRender(true); });
+
+  // This script tag sits at the end of <body>, so the DOM is already parsed
+  // by the time it runs — no need to wait for DOMContentLoaded (which may
+  // already have fired).
+  fetchAndMaybeRender(true).then(function () {
+    setInterval(function () { fetchAndMaybeRender(false); }, POLL_INTERVAL_MS);
+  });
+})();
+</script>
+</body>
+</html>

@@ -14,7 +14,7 @@ You are maintaining the applicant's job-application tracking log. Every applicat
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
 
 ```
-/applied — Records that you applied to a job, appending one row to tracking/applications.ndjson and refreshing the derived tracking views and learned-preferences profile.
+/applied — Records that you applied to a job, appending one row to tracking/applications.ndjson and refreshing the learned-preferences profile.
 
 Usage:
   /applied <job-description-file>
@@ -23,7 +23,7 @@ What it does:
   - Reads the job description from variable-input/job-descriptions/ and extracts company/title/req-ID
   - Auto-fills match score, suggested ask, and resume/cover-letter paths from /tailor-resume's manifest, if one exists for this job
   - Appends exactly one new row to tracking/applications.ndjson with application_status set to "Applied"
-  - Regenerates tracking/applications.md and .tsv, and refreshes tracking/learned-preferences.md
+  - Refreshes tracking/learned-preferences.md
 
 Gotchas:
   - Creates a new row every time — it never edits an existing one (that's /update-status's job); if a row for the same company+title already exists, it asks you to confirm before adding a look-alike duplicate
@@ -100,23 +100,7 @@ Append exactly one line to `tracking/applications.ndjson` (create the file if it
 
 ---
 
-## Step 8 — Regenerate the Human-Readable Views
-
-Read every line of `tracking/applications.ndjson` and regenerate both of these in full (don't append — always rewrite from the complete NDJSON so they never drift):
-
-**`tracking/applications.md`** — a single Markdown table, most recent `date_applied` first:
-```
-| Date Applied | Company | Position Title | Job ID | Status | Apply Method | Match Score | Recommended Ask | Salary Range | Glassdoor | Resume | Cover Letter | Source | URL |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-08-16 | Acme Corp | Staff Software Engineer | 200630278 | Applied | Online - Company site | 82 (Strong match) | $150,000 - $165,000 CAD | $120,000 - $150,000 CAD (posted) | 3.8 | [PDF](../output/...) | [PDF](../output/...) | manual | [link](https://...) |
-```
-Use `—` for any `null`/missing field. Match Score column shows `<total> (<interpretation>)`, or `—` if `null`.
-
-**`tracking/applications.tsv`** — tab-separated, one line per row, same column order as the Markdown table's header. Before writing, replace any literal tab or newline character inside a field value with a single space, so the file stays strictly one-row-per-line (this is what makes it safely reimportable into Excel/Numbers — unlike CSV, commas in job titles never need escaping since the delimiter is a tab).
-
----
-
-## Step 10 — Refresh Learned Preferences
+## Step 8 — Refresh Learned Preferences
 
 Silently refresh `tracking/learned-preferences.md` so it never goes stale without the user having to remember `/learn-preferences`:
 
@@ -131,7 +115,7 @@ Silently refresh `tracking/learned-preferences.md` so it never goes stale withou
 
 ---
 
-## Step 11 — Report
+## Step 9 — Report
 
 ```
 Application recorded.
@@ -143,6 +127,5 @@ Application recorded.
   Salary range   : <salary_range or "not found">
   Glassdoor      : <glassdoor_rating or "not found">/5.0
   Tracked in     : tracking/applications.ndjson (row appended)
-  Views updated  : tracking/applications.md, tracking/applications.tsv
   Preferences    : <"refreshed — <one-line summary of what changed>" or "no material change">
 ```

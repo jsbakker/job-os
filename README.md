@@ -6,7 +6,7 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 
 - Helps tailor resumes for specific job descriptions without embellishing*.
 - Helps find local job postings that match your career goals and salary expectations, while learning your job application patterns. WIP; YMMV.
-- Helps track the application status of your job search journey.
+- Helps track the application status of your job search journey — browse it live in `job-tracker.html`.
 
 \**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can prompt Claude to fix it.*
 
@@ -77,6 +77,7 @@ claude
 ```bash
 /applied <name-of-job-desctiption-file>
 ```
+You can browse the full tracking log anytime with `job-tracker.html` (see Project Structure below) — it stays live, no rebuild needed after `/applied` or `/update-status` runs.
 9. As the application progresses (screening call, technical round, rejection, offer...), log each stage:
 ```bash
 /update-status <name-of-job-desctiption-file> Screening interview
@@ -118,6 +119,7 @@ root
 ├─ blueprint.md
 ├─ CLAUDE.md
 ├─ formatting.md
+├─ job-tracker.html
 ├─ scripts
 │  ├─ find_jobs.py
 │  └─ import_numbers_tracking.py
@@ -131,8 +133,6 @@ root
 │  └─ publications.md
 ├─ tracking
 │  ├─ applications.ndjson
-│  ├─ applications.md
-│  ├─ applications.tsv
 │  ├─ learned-preferences.md
 │  └─ .learned-preferences.hash
 ├─ variable-input
@@ -190,18 +190,21 @@ Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search
 ### scripts/import_numbers_tracking.py
 One-time migration tool that imports a legacy `JobApplicationTrackingLatest.numbers` spreadsheet into `tracking/applications.ndjson`. Requires the `numbers-parser` package — install it in an isolated virtualenv (`python3 -m venv .venv-tools && ./.venv-tools/bin/pip install numbers-parser`) rather than your main Python install.
 
-### tracking/applications.ndjson, applications.md, applications.tsv
-The job-application log is **one dataset in three files**, not three separately-maintained trackers:
-
-- `applications.ndjson` — the only file `/applied` writes to directly. One JSON object per line, one row per application, append-only. This is the source of truth.
-- `applications.tsv` — tab-separated export, fully regenerated from the ndjson on every `/applied` run. Opens directly in Excel/Numbers (File > Open), which is what makes the log usable outside Claude Code. Tab-delimited rather than CSV specifically because job titles can contain commas.
-- `applications.md` — Markdown table, also fully regenerated on every run. For reading the log in Claude Code or on GitHub without opening a spreadsheet app.
-
-Because `.md` and `.tsv` are always rewritten in full from `.ndjson` rather than edited incrementally, they can't drift out of sync with it — but this does mean every `/applied` call touches all three files.
+### tracking/applications.ndjson
+The job-application log, and the sole source of truth for it — no separately-maintained exports. One JSON object per line, one row per application, append-only (`/applied` is the only command that adds a row). Browse it with `job-tracker.html` (below) rather than opening this file directly.
 
 Each row: `date_applied`, `company`, `position_title`, `job_id`, `application_status`, `apply_method`, `job_posting_url`, `recommended_ask` (the suggested ask from `/tailor-resume`'s Step 2c), `salary_range` (the job posting's own stated range, or a Glassdoor/researched estimate if the posting didn't state one — not the same figure as `recommended_ask`), `glassdoor_rating` (company's overall rating out of 5.0, looked up once per company and reused across repeat applications), `match_score`, `resume_file`, `cover_letter_file`, `source`. Fields `/applied` can't determine (no `/tailor-resume` run yet, no Glassdoor listing found, etc.) are left `null` rather than guessed.
 
 `application_status` is the one field that changes after the row is written: `/applied` initializes it to `"Applied"`, and `/update-status <job-description-file> <text>` appends further stages to it as a running, hyphen-delimited list (e.g. `"Applied - Screening interview (Aug 12) - Not Selected (Aug 21)"`). This is the single narrow exception to the log being append-only — everything else about a row is fixed once written.
+
+### job-tracker.html
+A self-contained, dependency-free viewer for `tracking/applications.ndjson` — this is what replaced the earlier generated `applications.md`/`applications.tsv` exports, which were dropped for being hard to read and always one command-run stale. It reads the ndjson directly at runtime, so it's always current with zero rebuild step: a sortable table (date, company, position, status, match score, Glassdoor rating) with a click-to-expand detail view showing every field, including the full match-score breakdown and status history.
+
+Since browsers block a page from reading local files directly, it needs a tiny local server:
+```bash
+python3 -m http.server 8000
+```
+Then open `http://localhost:8000/job-tracker.html`, run from the repo root so relative paths to `tracking/applications.ndjson` and any linked resume/cover-letter PDFs in `output/` resolve correctly. The page auto-refreshes every 30 seconds, or click Refresh to force it.
 
 ### tracking/learned-preferences.md, .learned-preferences.hash
 A profile of revealed job preferences, built by `/learn-preferences` from `applications.ndjson` + `variable-input/career-goals/*.md`, and consulted by `/find-job-descriptions` to decide what belongs in the main ranked report versus the "outside your typical pattern" section. It never adjusts the job-match score itself — only where a candidate is *displayed*, and a score of 70+ always lands in the main list regardless of pattern fit, so a strong rubric match can never be hidden by a behavioral guess. Confidence is weighted: patterns backed by `match_score`-scored applications outrank ones inferred from title text alone, and a single old instance is labeled a weak signal rather than a confirmed pattern. Refreshes automatically after every `/applied`, and self-bootstraps on first `/find-job-descriptions` run if it doesn't exist yet.

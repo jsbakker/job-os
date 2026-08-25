@@ -25,7 +25,7 @@ What it does:
   - Locates the matching row in tracking/applications.ndjson using the job-description file (matches on resume/cover-letter filename, req ID, or company+title — asks you to pick if more than one row matches, e.g. after a reapply)
   - Builds the proposed new application_status string, adding today's date to the new stage if you didn't already include one
   - Shows you that exact string and waits for confirmation before writing anything
-  - Updates only that one field on that one row, then regenerates tracking/applications.md and .tsv
+  - Updates only that one field on that one row
 
 Gotchas:
   - Never writes without confirmation first — nothing is saved until you approve the shown string
@@ -84,13 +84,7 @@ Read every line of `tracking/applications.ndjson`, replace only the matched row'
 
 ---
 
-## Step 5 — Regenerate Views
-
-Rewrite `tracking/applications.md` and `tracking/applications.tsv` from the updated NDJSON, identical to how `applied.md` Step 8 regenerates them.
-
----
-
-## Step 6 — Report
+## Step 5 — Report
 
 ```
 Status updated.
@@ -99,7 +93,6 @@ Status updated.
   Position       : <position_title>
   Previous status: <old application_status, or "(none)">
   New status     : <new application_status>
-  Views updated  : tracking/applications.md, tracking/applications.tsv
 ```
 
 Note: this command never refreshes `tracking/learned-preferences.md` — a status change carries no new company/title/seniority/language signal, so refreshing it here would be wasted work. Only `/applied` (a genuinely new application row) triggers that refresh.
