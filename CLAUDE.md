@@ -50,6 +50,10 @@ Then open `http://localhost:8000/job-tracker.html`. Run the server from the repo
 
 Dependencies: none for recurring use (stdlib-only Python). `/import-applications` may install optional packages (`numbers-parser`, `openpyxl`, `xlrd`, or `python-docx`, depending on the source file's format) into an isolated `.venv-tools/` virtualenv on demand — never into the system Python.
 
+## Getting Career Coaching
+
+`/career-coach [freeform question]` answers a specific career question, or with no argument runs a general "what should I work on next" check-in. It reads the full picture before answering: `template/` (career history, skills, education), `variable-input/career-goals/*.md`, `variable-input/salary-expectations.md`, `variable-input/job-search-preferences.md`, all of `tracking/applications.ndjson` (including rubric sub-scores on any scored application), and `tracking/learned-preferences.md`. It also runs a `WebSearch` for current market/skill-demand data so advice stays grounded rather than generic. Tone is a fixed, non-negotiable contract in the command itself: an ally, not a yes-man and not a cynic — every claim must trace to specific evidence from the applicant's own history, real gaps get named plainly alongside a next step, and the applicant gets pushed toward more ambition only as far as their own evidence and local market actually support. Writes nothing to disk; it's advisory only.
+
 ## Architecture
 
 The system separates static career data (template) from variable inputs (job context), and compiles a tailored output through the rules in `blueprint.md`.

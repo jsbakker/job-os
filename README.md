@@ -22,6 +22,7 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 - Run `/applied [job description name]` to track where you appied.
 - Run `/prep-interview` to find gaps to work on once an interview is scheduled.
 - Run `/update-status [job description name]` to update your application progress.
+- Run `/career-coach` anytime for an honest read on what to work on next.
 
 
 ## Problem Statement
@@ -119,6 +120,14 @@ If you already tracked applications before adopting this repo — a spreadsheet,
 /import-applications <path-to-your-existing-tracking-file>
 ```
 It reads the file's actual structure (Word, Excel, Apple Numbers, CSV, plain text, or Markdown are all supported) rather than assuming a fixed layout, shows you its inferred column mapping before processing anything, and skips any entry that looks like it's already logged. It always shows a full preview and asks for confirmation before appending anything — nothing is written until you approve it.
+
+### Getting career coaching
+Ask for honest, evidence-grounded advice on what to work on next, using everything already in this repo — your full career history, skills, goals, salary expectations, and every application you've logged:
+```bash
+/career-coach should I be applying to Staff-level roles yet?
+/career-coach   # leave it blank for a general "what should I work on next" check-in
+```
+It's built to act like an ally, not a hype machine: it won't just agree with you, it won't be cynical about real gaps either, and every claim it makes ties back to something specific in your own history — a named role, a named application outcome, a named skill — rather than generic career advice. It writes nothing to disk; it's just the conversation.
 
 
 ## Project Structure
