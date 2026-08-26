@@ -6,10 +6,13 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 
 - Helps tailor resumes for specific job descriptions without embellishing*.
 - Helps find local job postings that match your career goals and salary expectations, while learning your job application patterns. WIP; YMMV.
-- Helps track the application status of your job search journey — browse it live in `job-tracker.html`.
+- Helps track the application status of your job search journey — browse it live in the job tracker (see image below).
 - Helps find gaps that you should prep for in upcoming interviews.
 
 \**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can prompt Claude to fix it.*
+
+![Job Tracking](doc/images/job-tracker.png)
+
 
 ### Quickstart
 - In a text editor, provide everything about your career in the `template` folder.
