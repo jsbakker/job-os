@@ -220,38 +220,7 @@ Write the tailored resume to: `output/<base-name>.md`
 - `<p><span class="job-skills-title">Key Skills:</span> <span class="job-skills">skill, skill, ...</span></p>` immediately after each experience entry header, using the Key Skills from that entry's template file verbatim
 - Standard markdown list items (`-`) for bullet highlights (pandoc renders them as `<li>`)
 
-Assemble sections in this order:
-```
-{applicant-name} | {applicant-title}
-t: {phone} | e: {email} | w: {web}
-
-Summary
-{summary-paragraph}
-
-Skills
-{relevant skills, comma-separated or grouped}
-
-Experience
-{section-item-header}
-{date-range} ({location})
-• {highlight}
-• {highlight}
-[repeat per included role]
-
-Education
-{section-item-header}
-{date-range} ({location})
-• {highlight}
-
-Certifications
-[if applicable]
-
-Publications
-[if applicable]
-
-References
-Available upon request.
-```
+Assemble sections in the order and structure defined in `blueprint.md`'s Layout section — that file is the single source of truth for section order (currently Summary, Skills, Experience, Education, Certifications, Publications, References). If `/match-resume-style` has customized it, follow the customized order, not the example above.
 
 ---
 

@@ -54,11 +54,15 @@ Dependencies: none for recurring use (stdlib-only Python). `/import-applications
 
 `/career-coach [freeform question]` answers a specific career question, or with no argument runs a general "what should I work on next" check-in. It reads the full picture before answering: `template/` (career history, skills, education), `variable-input/career-goals/*.md`, `variable-input/salary-expectations.md`, `variable-input/job-search-preferences.md`, all of `tracking/applications.ndjson` (including rubric sub-scores on any scored application), and `tracking/learned-preferences.md`. It also runs a `WebSearch` for current market/skill-demand data so advice stays grounded rather than generic. Tone is a fixed, non-negotiable contract in the command itself: an ally, not a yes-man and not a cynic — every claim must trace to specific evidence from the applicant's own history, real gaps get named plainly alongside a next step, and the applicant gets pushed toward more ambition only as far as their own evidence and local market actually support. Writes nothing to disk; it's advisory only.
 
+## Customizing Resume Style
+
+`/match-resume-style <path-to-reference-resume>` regenerates `formatting.md` and `blueprint.md` to match the visual style of any resume file (PDF, image, or Word doc) instead of this repo's default look — so third-party adopters aren't stuck with the original owner's design. It visually inspects the reference (colors, font character, header treatment, spacing, bullet style, section order), screens every element against the same ATS rules `/tailor-resume` Step 8 already enforces, and adapts anything ATS-risky (multi-column/sidebar layouts, icons, photos, custom bullet glyphs) to a safe equivalent rather than adopting or silently dropping it. Shows the proposed style and every adaptation made, then renders a preview PDF from real `template/` data, before writing anything. Both target files are git-tracked, so `git checkout -- formatting.md blueprint.md` reverts a change.
+
 ## Architecture
 
 The system separates static career data (template) from variable inputs (job context), and compiles a tailored output through the rules in `blueprint.md`.
 
-- **`blueprint.md`** — The core instruction set for the AI: role definition, step-by-step assembly rules, layout template, and output constraints (2 pages max, no fabrication, verbatim bullets unless rephrasing is critical).
+- **`blueprint.md`** — Defines the resume's section layout and order only (a token template); pure visual/structural layout, not the assembly logic. The step-by-step assembly rules, content-selection logic, and output constraints (2 pages max, no fabrication, verbatim bullets unless rephrasing is critical) live in `.claude/commands/tailor-resume.md`, which reads `blueprint.md`'s Layout section as its single source of truth for section order.
 - **`formatting.md`** — CSS class mapping and styles for all resume sections. This drives the visual output when pandoc+weasyprint renders the PDF.
 - **`template/`** — The applicant's full career data, never edited per-job:
   - `experience/<YYYY-MM_YYYY-MM>.md` — one file per job, named by date range

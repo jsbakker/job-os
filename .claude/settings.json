@@ -6,6 +6,10 @@
       "Write(variable-input/job-descriptions/*)",
       "Write(tracking/*)",
       "Edit(tracking/*)",
+      "Write(formatting.md)",
+      "Edit(formatting.md)",
+      "Write(blueprint.md)",
+      "Edit(blueprint.md)",
       "Bash(pandoc output/*)",
       "Bash(mdls *)",
       "Bash(shasum *)",
@@ -19,6 +23,8 @@
       "Bash(./.venv-tools/bin/pip install *)",
       "Bash(./.venv-tools/bin/python *)",
       "Bash(textutil -convert txt *)",
+      "Bash(textutil -convert pdf *)",
+      "Bash(mktemp *)",
       "WebFetch",
       "WebSearch"
     ]
