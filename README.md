@@ -1,5 +1,5 @@
-# Resume Blueprint
-The job search in 2026 is broken and applicants can feel powerless in an opaque system that often works against them. It's time to change that.
+# Job OS
+The job search in 2026 is broken and applicants can feel powerless in an opaque system that often works against them. It's time to change that. Job OS is a set of commands, which in combination, give you an environment to build the next steps in your career.
 
 ## TL;DR
 This project leverages agentic AI (Claude) to put the power back into the job seeker's hands. This repo provides a structured layout, a bluepreint, a data template, and several Claude commands that help with the following:
@@ -7,6 +7,7 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 - Helps tailor resumes for specific job descriptions without embellishing*.
 - Helps find local job postings that match your career goals and salary expectations, while learning your job application patterns. WIP; YMMV.
 - Helps track the application status of your job search journey — browse it live in `job-tracker.html`.
+- Helps find gaps that you should prep for in upcoming interviews.
 
 \**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can prompt Claude to fix it.*
 
