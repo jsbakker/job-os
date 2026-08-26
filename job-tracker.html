@@ -375,6 +375,18 @@
     return segs.length ? segs[segs.length - 1] : status;
   }
 
+  function hasReplied(status) {
+    const s = status.trim().toLowerCase();
+    return s !== 'applied' && s !== 'submitted';
+  }
+
+  const INTERVIEW_KEYWORDS = ['interview', 'screening', 'coding', 'technical', 'onsite'];
+
+  function hasInterviewed(status) {
+    const s = status.toLowerCase();
+    return INTERVIEW_KEYWORDS.some(function (kw) { return s.indexOf(kw) !== -1; });
+  }
+
   // ---------- row identity ----------
 
   function rowKey(row) {
@@ -558,7 +570,12 @@
 
     tbodyEl.appendChild(frag);
     updateSortIndicators();
-    countEl.textContent = allRows.length + ' application' + (allRows.length === 1 ? '' : 's');
+
+    const repliedCount = allRows.filter(function (r) { return hasReplied(r.application_status); }).length;
+    const interviewedCount = allRows.filter(function (r) { return hasInterviewed(r.application_status); }).length;
+    countEl.textContent = allRows.length + ' application' + (allRows.length === 1 ? '' : 's') +
+      ' · ' + repliedCount + ' replied' +
+      ' · ' + interviewedCount + ' interviewed';
   }
 
   function rerenderPreservingScroll() {
