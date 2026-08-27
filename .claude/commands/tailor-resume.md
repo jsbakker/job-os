@@ -79,7 +79,7 @@ ls output/<base-name>-cover-letter.md output/<base-name>-cover-letter.pdf 2>/dev
   ```
 - If all hashes match **but** cover letter files are missing — skip to Step 8b to generate the cover letter only, then update the manifest and report.
 
-If **any hash differs** (or the manifest is absent), continue to Step 1.
+If **any hash differs** (or the manifest is absent), note whether the existing manifest (if any) has a `job_match` block, and its path (`output/<base-name>.manifest`) — Step 2b's Reconciliation subsection will need it later, even when the reason a rerun was triggered is unrelated to scoring (e.g. only `blueprint.md` changed). Then continue to Step 1.
 
 ---
 
@@ -133,37 +133,76 @@ Using the job description and career goals as filters:
 
 Score the applicant's fit for this role across four dimensions. Be honest — over-scoring a weak match wastes the applicant's time; under-scoring a strong one undersells them.
 
-Record each dimension score and rationale. These will be reported in Step 11.
+**Do not compute or estimate a dimension score yourself.** Your job is the itemized classification below — build it, write it to a temp JSON file (e.g. `/tmp/job-match-input.json`), then run:
 
-### Skill Overlap (0–30 points)
-- List each required skill or qualification from the job posting and check whether it appears in `template/all-skills.md` or is demonstrated across the experience entries.
-- Required skills that match: up to 20 pts (proportional to coverage).
-- Preferred/bonus skills that match: up to 10 pts (proportional to coverage).
-- Partial credit for near-matches (e.g., "XCTest" when the applicant has "Selenium" and iOS experience).
+```bash
+python3 scripts/score_job_match.py score --input /tmp/job-match-input.json
+```
 
-### Experience Relevance (0–30 points)
-- How directly does the applicant's work history map to the role's responsibilities, domain, and technology stack?
-- 25–30: Primary role or multiple recent roles are in the same domain and stack.
-- 15–24: Significant overlap in domain or stack, with some gaps.
-- 8–14: Adjacent domain; meaningful transferable work but notable gaps.
-- 0–7: Tangential at best; role is a significant reach.
+That command returns the actual `total`, all four sub-scores, and the `interpretation` label — use its output verbatim. If a result looks wrong given the list you built, the itemization was wrong (a bad classification, or too many/few items extracted) — fix the classification and re-run the script. Never override its output by hand.
 
-### Seniority Match (0–20 points)
-- Compare the role's expected level (IC, Senior, Staff, Principal, etc.) to the applicant's demonstrated level based on title history, scope of ownership, cross-team impact, and mentorship.
-- 17–20: Level is a direct match or one step below (room to grow).
-- 10–16: Applicant is two levels below or one level above (overqualified).
-- 0–9: Significant mismatch in either direction.
+Build this JSON payload:
 
-### Transferable Skills (0–20 points)
-- Identify skills or experiences that aren't a direct match but meaningfully strengthen the application — adjacent technologies, domain knowledge, process leadership, or unique differentiators that address an unstated need.
-- Score based on strength and specificity of the transferable value.
+```json
+{
+  "skill_overlap": {
+    "required": [{"skill": "<from JD>", "status": "match|partial|absent", "evidence": "<citation to all-skills.md or an experience bullet, or omit if absent>"}],
+    "preferred": [{"skill": "<from JD>", "status": "match|partial|absent", "evidence": "..."}]
+  },
+  "experience_relevance": {
+    "items": [{"item": "<a specific JD responsibility/domain/stack element>", "status": "direct|adjacent|absent", "evidence": "<citation to a specific template/experience/*.md entry>"}]
+  },
+  "seniority_match": {
+    "title_level": {"score": <0-8>, "note": "<role's expected level vs. applicant's title history>"},
+    "scope": {"score": <0-8>, "note": "<ownership/cross-team impact/mentorship evidence>"},
+    "years": {"score": <0-4>, "note": "<years of relevant experience vs. what the role expects>"}
+  },
+  "transferable_skills": {
+    "items": [{"item": "<adjacent tech, domain knowledge, process leadership, unique differentiator>", "score": <0-5>, "evidence": "<citation>"}]
+  }
+}
+```
+
+Guidance for building each section (the judgment work — this is what you're actually doing):
+
+### Skill Overlap
+- List **every** required skill/qualification from the job posting as its own `required` item, and every preferred/bonus skill as its own `preferred` item. Check each against `template/all-skills.md` and the experience entries.
+- `match` = clearly demonstrated. `partial` = a credible near-match (e.g. "XCTest" when the applicant has "Selenium" and iOS experience) — cite why it's a reasonable partial credit, not a stretch. `absent` = no evidence.
+- If the JD states no preferred/bonus skills at all, leave `preferred` as an empty list — the script awards full credit for that case.
+
+### Experience Relevance
+- Extract 4–8 specific responsibility/domain/stack items from the JD (not every bullet — the load-bearing ones). For each, classify how directly the applicant's work history maps to it: `direct` (same domain and stack, recent), `adjacent` (transferable but not a clean match), `absent` (no real evidence). Cite the specific `template/experience/*.md` entry backing each `direct` or `adjacent` call.
+
+### Seniority Match
+- `title_level` (0–8): how the role's expected level (IC, Senior, Staff, Principal, etc.) compares to the applicant's title history. `scope` (0–8): ownership, cross-team impact, mentorship evidence from the experience entries. `years` (0–4): years of relevant experience vs. what the role expects. Note the reasoning for each — these notes are what make a future rescore auditable.
+
+### Transferable Skills
+- Identify up to 5 items that aren't a direct requirement match but meaningfully strengthen the application — adjacent technologies, domain knowledge, process leadership, or a differentiator addressing an unstated need. Score each 0–5 based on strength/specificity; cite the evidence.
 
 ### Interpretation
+
+The script looks up the interpretation label from a fixed band table — do not eyeball this yourself, especially near a boundary:
 - 85–100: Exceptional match — tailor hard and apply with confidence.
 - 70–84: Strong match — a few gaps; cover letter should address them.
 - 55–69: Solid match with notable gaps — worth applying; be transparent about growth areas.
 - 40–54: Stretch role — apply only if genuinely interested; cover letter must compensate.
 - Under 40: Reach application — significant gaps; apply selectively.
+
+### Reconciliation
+
+If Step 0 noted an existing manifest with a prior `job_match` block, run:
+
+```bash
+python3 scripts/score_job_match.py compare --new <path-to-this-run's-score-output.json> --prior output/<base-name>.manifest
+```
+
+(Save this run's `score` output to a file first if you haven't already, so `--new` can point at it.)
+
+If the result's `material_rescore` is `true` (total moved 8+ points, or the interpretation label changed):
+1. Show the script's before/after table (`report_text`) to the user in Step 11 (see that step's report block).
+2. For each dimension listed in `dimensions_needing_explanation` (moved 3+ points), state a specific one-line reason: either a genuine input change (cite the changed file/content), or — if the inputs are unchanged — an honest note naming which checklist item(s) were classified differently this time versus what the prior manifest's `job_match.checklist` recorded (if present).
+
+If `material_rescore` is `false`, no reconciliation note is needed in Step 11 — proceed normally. If Step 0 found no prior manifest, skip this subsection entirely.
 
 ---
 
@@ -186,14 +225,16 @@ This step produces a report-only recommendation — it does not appear on the re
    - If the job posting states a salary or range explicitly, use it verbatim (currency and all) as the primary anchor — this is always preferred over research.
    - If it doesn't, use `WebSearch` to find a market range for this specific title/level/location/company as posted, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
 
-5. **Position the ask within the anchor range**, using the Step 2b total score and the Transferable Skills sub-score:
-   - 85–100, strong transferable skills: top of the anchor range, or up to ~5–10% above it if the applicant's market-worth range sits clearly higher.
-   - 70–84: upper-middle of the anchor range.
-   - 55–69: middle of the anchor range.
-   - Under 55: lower-middle to low end of the anchor range.
+5. **Position the ask within the anchor range.** Do not hand-pick a percentage yourself — run:
+   ```bash
+   python3 scripts/score_job_match.py salary-position --anchor-low <low> --anchor-high <high> \
+     --total-score <Step 2b total> --transferable-score <Step 2b Transferable Skills sub-score> \
+     [--market-worth-high <applicant's market-worth range high, if step 3 found one>]
+   ```
+   This applies the same fixed bands the old prose described (85–100 → top of range, or up to 10% above it if market-worth-high exceeds the anchor high and transferable-score is strong; 70–84 → upper-middle; 55–69 → middle; under 55 → lower-middle to low end) — use its `suggested_low`/`suggested_high` output verbatim.
    - Do not inflate the number to force it up to the applicant's market worth if the job's anchor range is simply lower across the board — surface that as a flag instead (next step), don't mask it.
-   - If a floor from `salary-expectations.md` exists and the computed number falls below it, use the floor as the suggested low end and flag the conflict.
-   - If the job anchor and the applicant's market-worth figure ended up in different currencies (step 1 flagged a mismatch), position within the job anchor's own currency and range — don't mix figures from two currencies into one range.
+   - If a floor from `salary-expectations.md` exists and the script's `suggested_low` falls below it, use the floor as the suggested low end instead and flag the conflict.
+   - If the job anchor and the applicant's market-worth figure ended up in different currencies (step 1 flagged a mismatch), position within the job anchor's own currency and range — don't pass a market-worth-high from a different currency into the script.
 
 6. **Flag mismatches explicitly — do not smooth them over:**
    - ⚠ **Pay cut risk:** the job's anchor range sits meaningfully (~10%+) below the applicant's market-worth range (only compare when both are in the same currency, or note that a currency difference makes the comparison approximate). State it plainly, especially if paired with a borderline Step 2b score.
@@ -403,12 +444,13 @@ Write the result as JSON to `output/<base-name>.manifest`:
     "cover_letter_pdf": "output/<base-name>-cover-letter.pdf"
   },
   "job_match": {
-    "total": <Step 2b total score, integer>,
+    "total": <Step 2b total score, integer, from score_job_match.py's output>,
     "skill_overlap": <Step 2b Skill Overlap score>,
     "experience_relevance": <Step 2b Experience Relevance score>,
     "seniority_match": <Step 2b Seniority Match score>,
     "transferable_skills": <Step 2b Transferable Skills score>,
-    "interpretation": "<Step 2b interpretation label, e.g. 'Strong match'>"
+    "interpretation": "<Step 2b interpretation label, e.g. 'Strong match'>",
+    "checklist": <the "checklist" object echoed back by `score_job_match.py score` — the full itemized classification (skill_overlap/experience_relevance/seniority_match/transferable_skills sub-objects with every item's status and citation), carried verbatim so a future rescore's Reconciliation subsection can diff against exactly what was classified this run>
   },
   "suggested_asking_salary": "<Step 2c suggested asking range with currency code, e.g. '$130,000 - $145,000 CAD', or null if Step 2c found no usable data>",
   "job_posting_salary_range": {
@@ -450,6 +492,14 @@ Job match score: <total>/100 — <interpretation label>
   Experience Relevance: <score>/30 — <one-line rationale>
   Seniority Match    : <score>/20 — <one-line rationale>
   Transferable Skills: <score>/20 — <one-line rationale>
+[If Step 2b's Reconciliation subsection found a prior manifest and ran `compare`, AND `material_rescore` was true:]
+
+<the script's report_text verbatim, e.g.:>
+⚠ Score changed since last run (was <prior total>/100 "<prior label>", now <new total>/100 "<new label>"):
+  Skill Overlap       : <prior> → <new>  (<delta>)
+  Experience Relevance: <prior> → <new>  (<delta>) — <your one-line explanation, only on dimensions moving 3+ points>
+  Seniority Match      : <prior> → <new>  (<delta>)
+  Transferable Skills : <prior> → <new>  (<delta>)
 
 Keywords matched from job description: <list the matched keywords>
 Experience entries included: <list the roles included>
@@ -473,4 +523,4 @@ ATS warnings (<N>):
   ...
 ```
 
-Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit salary flag lines if step 2c raised none.
+Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit salary flag lines if step 2c raised none. Omit the "⚠ Score changed since last run" block entirely unless Step 2b's Reconciliation subsection ran `compare` and got `material_rescore: true`.

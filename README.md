@@ -99,6 +99,15 @@ It always shows you the exact resulting status string (including any date it's p
 ```
 It prefers that future-dated stage if you've logged one; otherwise it predicts the likely next stage from what's already logged and tells you it's a prediction rather than guessing silently. It fails fast with no output if the application's already closed or you already have an offer. Output lands in `output/<base-name>-interview-prep.md`.
 
+### How the match score and salary ask are calculated
+The 0-100 job-match score is built from four dimensions: Skill Overlap (0-30, required/preferred skills from the posting checked against your `template/`), Experience Relevance (0-30, how directly your work history maps to the role's responsibilities and stack), Seniority Match (0-20, title/scope/years against the role's expected level), and Transferable Skills (0-20, adjacent value that isn't a direct requirement match). Each one is built as an itemized, cited checklist — every skill, responsibility, and transferable item gets a specific match/partial/absent (or direct/adjacent/absent) call with a citation back to `template/`, not a single holistic guess.
+
+Claude does that classification work — it's genuine judgment and can't be scripted. The arithmetic on top of it (weighting, capping each dimension, and picking the interpretation label from the score) runs through `scripts/score_job_match.py` instead of Claude's own mental math, specifically so the same job scored against the same `template/` data produces the same numbers on a rerun — this was previously a source of real run-to-run variance. The suggested asking salary works the same way: it's positioned inside the posting's own stated range (or a researched range if none is posted) based on where the total score falls, checked against your floor in `variable-input/salary-expectations.md`, with the actual positioning math also run through that script.
+
+If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `tracking/scoring-fixtures/` has a few frozen job postings with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
+
+For the exact rubric wording, see `.claude/commands/tailor-resume.md`'s Step 2b (match score) and Step 2c (salary ask).
+
 ### Finding jobs automatically
 
 `/find-job-descriptions [min-match-percent]` searches for live local postings (via the free Adzuna API), scores them against your resume, and auto-downloads strong matches (65% by default) into `variable-input/job-descriptions/`, skipping anything already logged in `tracking/`:
@@ -150,7 +159,8 @@ root
 ├─ formatting.md
 ├─ job-tracker.html
 ├─ scripts
-│  └─ find_jobs.py
+│  ├─ find_jobs.py
+│  └─ score_job_match.py
 ├─ template
 │  ├─ all-skills.md
 │  ├─ certifications.md
@@ -214,6 +224,9 @@ Used by `/find-job-descriptions`: title keywords to match (any one), target loca
 
 ### scripts/find_jobs.py
 Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search-seen.json`) so repeated searches don't re-fetch or re-score the same posting. Invoked by `/find-job-descriptions`, not run directly.
+
+### scripts/score_job_match.py
+Deterministic arithmetic for the job-match score and salary-ask positioning (see "How the match score and salary ask are calculated" above) — weighting, capping, interpretation-band lookup, before/after comparison against a prior score, and salary-range positioning. Claude classifies (the judgment work), this script computes (the arithmetic), so the same classification always produces the same numbers. Invoked by `/tailor-resume`, not run directly.
 
 ### tracking/applications.ndjson
 The job-application log, and the sole source of truth for it — no separately-maintained exports. One JSON object per line, one row per application, append-only (`/applied` is the only command that adds a row). Browse it with `job-tracker.html` (below) rather than opening this file directly.
