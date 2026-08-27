@@ -4,10 +4,10 @@ This file defines the visual layout of the resume. See the "Project Structure" s
 ## Layout
 The following layout places the structured data in a visual order.
 
-Tokens inside of a pair of curly brackets are variables. Words inside of a pair of square brackets can be instructions.
+Tokens inside of a pair of curly brackets are variables. Words inside of a pair of square brackets can be instructions. Square bracket text followed by parenthesis text (like a markdown link) should be treated as a hyperlink.
 ```
 {applicant-name} | {applicant-title}
-t: {contact-info-phone} | e: {contact-info-email} | li: {contact-info-linkedin} [use li: for LinkedIn URLs; use w: for any other web link]
+t: {contact-info-phone} | e: {contact-info-email} | [LinkedIn]({contact-info-linkedin}) | [GitHub]({contact-info-github}) | [Medium]({contact-info-medium}) [only include if found in contact-info.txt]
 
 {summary-section-header}
 {summary-paragraph}

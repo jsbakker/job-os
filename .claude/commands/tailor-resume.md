@@ -214,7 +214,7 @@ Write the tailored resume to: `output/<base-name>.md`
 
 **CSS class application:** pandoc preserves raw HTML, so apply `formatting.md` classes via inline HTML — not markdown headings. Use:
 - `<span class="applicant-name">Name</span>` and `<span class="applicant-title">Title</span>` on the header line
-- `<p class="contact-info">...</p>` for the contact line — omit any field not found in `contact-info.txt` (no placeholders); if the web link is a LinkedIn URL (`linkedin.com`), label it `li:` instead of `w:`
+- `<p class="contact-info">...</p>` for the contact line, following `blueprint.md`'s Layout section verbatim: `t:` and `e:` fields as plain text, then `[LinkedIn](url)`, `[GitHub](url)`, `[Medium](url)` as markdown links (pandoc renders these as clickable text, not raw URLs) — omit any of the three link fields not found in `contact-info.txt` (no placeholders)
 - `<p class="section-header">Skills</p>` for each section header
 - `<p class="section-item-header">Role, Company</p>` for each experience/education entry header, then `<p class="date-location"><span>Date - Date</span><span>Location</span></p>` on the line immediately following — no parentheses around the location text. **Use a plain hyphen (`-`) in date ranges — never an en dash (–) or em dash (—).**
 - `<p><span class="job-skills-title">Key Skills:</span> <span class="job-skills">skill, skill, ...</span></p>` immediately after each experience entry header, using the Key Skills from that entry's template file verbatim
