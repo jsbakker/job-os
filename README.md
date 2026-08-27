@@ -104,7 +104,7 @@ The 0-100 job-match score is built from four dimensions: Skill Overlap (0-30, re
 
 Claude does that classification work — it's genuine judgment and can't be scripted. The arithmetic on top of it (weighting, capping each dimension, and picking the interpretation label from the score) runs through `scripts/score_job_match.py` instead of Claude's own mental math, specifically so the same job scored against the same `template/` data produces the same numbers on a rerun — this was previously a source of real run-to-run variance. The suggested asking salary works the same way: it's positioned inside the posting's own stated range (or a researched range if none is posted) based on where the total score falls, checked against your floor in `variable-input/salary-expectations.md`, with the actual positioning math also run through that script.
 
-If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `tracking/scoring-fixtures/` has a few frozen job postings with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
+If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `tracking/scoring-fixtures/` has a few fabricated job postings (fictional companies, calibrated against the fictional example applicant, not real postings or personal data) with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
 
 For the exact rubric wording, see `.claude/commands/tailor-resume.md`'s Step 2b (match score) and Step 2c (salary ask).
 
@@ -172,7 +172,8 @@ root
 ├─ tracking
 │  ├─ applications.ndjson
 │  ├─ learned-preferences.md
-│  └─ .learned-preferences.hash
+│  ├─ .learned-preferences.hash
+│  └─ scoring-fixtures/
 ├─ variable-input
 │  ├─ career-goals/
 │  ├─ job-descriptions/
@@ -227,6 +228,9 @@ Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search
 
 ### scripts/score_job_match.py
 Deterministic arithmetic for the job-match score and salary-ask positioning (see "How the match score and salary ask are calculated" above) — weighting, capping, interpretation-band lookup, before/after comparison against a prior score, and salary-range positioning. Claude classifies (the judgment work), this script computes (the arithmetic), so the same classification always produces the same numbers. Invoked by `/tailor-resume`, not run directly.
+
+### tracking/scoring-fixtures/
+A few fabricated job postings (fictional companies, no real posting or personal data) with `expected.md` score-range files, calibrated against the fictional example applicant shipped in `template/` — used as a manual periodic check that edits to the scoring rubric or script haven't drifted its behavior. See its own `README.md` for the procedure.
 
 ### tracking/applications.ndjson
 The job-application log, and the sole source of truth for it — no separately-maintained exports. One JSON object per line, one row per application, append-only (`/applied` is the only command that adds a row). Browse it with `job-tracker.html` (below) rather than opening this file directly.
