@@ -216,7 +216,7 @@ Write the tailored resume to: `output/<base-name>.md`
 - `<span class="applicant-name">Name</span>` and `<span class="applicant-title">Title</span>` on the header line
 - `<p class="contact-info">...</p>` for the contact line — omit any field not found in `contact-info.txt` (no placeholders); if the web link is a LinkedIn URL (`linkedin.com`), label it `li:` instead of `w:`
 - `<p class="section-header">Skills</p>` for each section header
-- `<p class="section-item-header">Role, Company</p>` for each experience/education entry header, then `<p>Date - Date (Location)</p>` on the line immediately following. **Use a plain hyphen (`-`) in date ranges — never an en dash (–) or em dash (—).**
+- `<p class="section-item-header">Role, Company</p>` for each experience/education entry header, then `<p class="date-location"><span>Date - Date</span><span>Location</span></p>` on the line immediately following — no parentheses around the location text. **Use a plain hyphen (`-`) in date ranges — never an en dash (–) or em dash (—).**
 - `<p><span class="job-skills-title">Key Skills:</span> <span class="job-skills">skill, skill, ...</span></p>` immediately after each experience entry header, using the Key Skills from that entry's template file verbatim
 - Standard markdown list items (`-`) for bullet highlights (pandoc renders them as `<li>`)
 

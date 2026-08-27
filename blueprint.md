@@ -17,7 +17,7 @@ t: {contact-info-phone} | e: {contact-info-email} | li: {contact-info-linkedin} 
 
 {experience-section-header}
 {experience-section-item-header}
-{date-range} ({location})
+{date-range} [left-aligned]   {location} [right-aligned]
 Key Skills:{key-skills}
 {experience-section-item-highlights-1}
 {experience-section-item-highlights-2}
@@ -26,7 +26,7 @@ Key Skills:{key-skills}
 
 {education-section-header}
 {education-section-item-header}
-{date-range} ({location})
+{date-range} [left-aligned]   {location} [right-aligned]
 {education-section-item-highlights-1}
 {education-section-item-highlights-2}
 [etc. repeat as necessary ...]

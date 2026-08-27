@@ -13,9 +13,11 @@ The following JSON stucture defines element distinctions for specific areas of t
         "skills-section-header": ".section-header",
         "experience-section-header": ".section-header",
         "experience-section-item-header": ".section-item-header",
+        "experience-section-item-date-location": ".date-location",
         "experience-section-item-highlights": "li",
         "education-section-header": ".section-header",
         "education-section-item-header": ".section-item-header",
+        "education-section-item-date-location": ".date-location",
         "education-section-item-highlights": "li",
         "certifications-section-header": ".section-header",
         "publications-section-header": ".section-header",
@@ -64,6 +66,15 @@ The following CSS structure defines styles to be mapped to the above areas of th
     color: black;
     padding-bottom: 2px;
     margin-bottom: 2px;
+}
+
+.date-location {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9pt;
+    padding-top: 2px;
+    margin-top: 2px;
+    line-height: 1.285;
 }
 
 .job-skills-title {
