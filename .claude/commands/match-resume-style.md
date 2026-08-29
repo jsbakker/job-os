@@ -130,7 +130,7 @@ Keep the token/placeholder structure (`{applicant-name}`, `{summary-paragraph}`,
 
 ## Step 8 — Render a Preview
 
-Build a small representative sample resume from real `template/` data (contact info, all-skills, and one or two experience entries — not placeholder/fake content) formatted per the new `blueprint.md`, and render it through the same pipeline every tailored resume uses:
+Invoke the `load-career-profile` skill in `sample` mode to load a small representative sample of real `template/` data (contact info, all-skills, one or two experience entries — not placeholder/fake content). Build the sample resume from that data, formatted per the new `blueprint.md`, and render it through the same pipeline every tailored resume uses:
 
 ```bash
 pandoc output/style-preview.md -o output/style-preview.pdf --pdf-engine=weasyprint -c output/resume-style.css

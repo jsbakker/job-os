@@ -63,11 +63,9 @@ Adzuna API credentials not found. To set this up (one-time, free):
 Read the following before doing any matching:
 
 1. `variable-input/job-search-preferences.md` — title keywords, target location(s), exclusions
-2. All files under `variable-input/career-goals/` — career direction and target seniority
-3. All files recursively under `template/` — the applicant's full career data (skills, experience, education)
-4. `template/contact-info.txt` — current title and location
-5. `tracking/applications.ndjson` — if present, one JSON object per line; each row's `company` and `position_title` (and `job_posting_url` if set) identify jobs already applied to. Skip silently if the file doesn't exist yet (no applications tracked).
-6. `tracking/learned-preferences.md` — revealed job preferences learned from application history. **If it doesn't exist yet**, run `.claude/commands/learn-preferences.md`'s Steps 1-5 inline right now to build it before continuing (self-bootstrapping — the user shouldn't need to remember a separate command for this to work the first time).
+2. Invoke the `load-career-profile` skill in `full` mode to load `template/` (full career data, including `contact-info.txt`'s current title/location) and `variable-input/career-goals/*.md` (career direction and target seniority).
+3. `tracking/applications.ndjson` — if present, one JSON object per line; each row's `company` and `position_title` (and `job_posting_url` if set) identify jobs already applied to. Skip silently if the file doesn't exist yet (no applications tracked).
+4. `tracking/learned-preferences.md` — revealed job preferences learned from application history. **If it doesn't exist yet**, run `.claude/commands/learn-preferences.md`'s Steps 1-5 inline right now to build it before continuing (self-bootstrapping — the user shouldn't need to remember a separate command for this to work the first time).
 
 **Staleness advisory (non-blocking):** compare the `Last auto-generated` date in `tracking/learned-preferences.md`'s header to the most recent modification among `variable-input/career-goals/*.md` and `tracking/applications.ndjson`. If either is newer, note in the Step 9 report that the preference profile may be stale and suggest running `/learn-preferences` — don't block or auto-refresh it here.
 
@@ -142,7 +140,7 @@ Candidates with a cached (already non-null) `score` are not re-scored — reuse 
 
 For each candidate where `full_text_fetched` is true (this run or cached) **and** total score ≥ the Step 2 threshold:
 
-1. Slugify `<Company>-<Job Title>` in the style of the existing example `variable-input/job-descriptions/City-of-Vancouver-Solutions-Architect.md`: title-case words, spaces and punctuation collapsed to single hyphens, no leading/trailing hyphens.
+1. Compute the slug: `SLUG=$(python3 scripts/base_name.py company-title-slug --company "<Company>" --job-title "<Job Title>")` (matches the style of the existing example `variable-input/job-descriptions/City-of-Vancouver-Solutions-Architect.md`).
 2. Write the full posting text to `variable-input/job-descriptions/<slug>.md`, prefixed with a short header:
    ```
    Source: <redirect_url>

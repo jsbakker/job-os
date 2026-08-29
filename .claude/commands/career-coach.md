@@ -46,9 +46,9 @@ Examples:
 
 ## Step 1 — Gather Full Context
 
-Read, recursively where applicable:
-- `template/contact-info.txt` (current title), `template/all-skills.md`, `template/education.md`, `template/certifications.md`, `template/publications.md`, and every `template/experience/*.md` file (full career history, including each role's Key Skills and Highlights)
-- `variable-input/career-goals/*.md` (stated direction)
+Invoke the `load-career-profile` skill in `full` mode to load `template/` (full career history, including each role's Key Skills and Highlights) and `variable-input/career-goals/*.md` (stated direction).
+
+Then read directly (not covered by the skill):
 - `variable-input/salary-expectations.md`, if present (current salary, floor, target ranges, currency)
 - `variable-input/job-search-preferences.md`, if present (target titles, locations, exclusions)
 - `tracking/applications.ndjson` in full (every application: company, title, status, match_score when available, notes, dates)

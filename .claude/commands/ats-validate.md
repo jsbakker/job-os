@@ -105,7 +105,7 @@ Start at 15.
 
 Start at 15.
 
-Parse all date ranges from the experience entries in the PDF text. Sort them chronologically. For each adjacent pair, compute the gap between the end date of one entry and the start date of the next.
+Extract all date ranges from the experience entries in the PDF text into `{"roles": [{"role", "start": "YYYY-MM", "end": "YYYY-MM"|"present"}, ...]}` and run `python3 scripts/check_gaps.py --input <file>` (or pipe the JSON on stdin). Use its `gaps` list (each with `gap_months`, `before_role`, `after_role`) verbatim — do not sort or diff dates by hand.
 
 | Check | Deduct |
 |---|---|

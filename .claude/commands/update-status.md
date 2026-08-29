@@ -47,18 +47,21 @@ Read `variable-input/job-descriptions/<filename>`. Extract, if present in the te
 
 ## Step 2 — Locate the Tracking Row (unified, multi-signal)
 
-Derive `<base-name>` using the identical normalization rule embedded in `tailor-resume.md` Step 0 (applicant name + job description filename stem).
+Derive `<base-name>` via `python3 scripts/base_name.py applicant-job --applicant-name "<applicant name>" --job-filename "<filename>"`.
 
-Read `tracking/applications.ndjson` and collect every row that matches **any** of the following (dedupe the result — a row can match more than one signal):
-- `resume_file` or `cover_letter_file` contains `<base-name>`
-- `job_id` equals the req ID extracted in Step 1 (only check this if one was found)
-- `company` + `position_title` match case-insensitively
+Look up matching rows:
 
-**Zero matches:** stop and tell the user. Suggest running `/applied` first if this job was never logged, or double-checking the filename. Do not create a row.
+```bash
+python3 scripts/find_tracking_row.py lookup --file tracking/applications.ndjson \
+  --base-name "<base-name>" --job-id "<req ID, if found>" \
+  --company "<company>" --position-title "<title>"
+```
 
-**More than one match:** this is expected, not just an edge case — reapplying to the same job after a rejection produces two rows that legitimately match on the same `<base-name>`. Show every candidate (`date_applied`, current `application_status`) and ask the user which one to update. Do not guess, and do not update more than one.
+**`match_count` is 0:** stop and tell the user. Suggest running `/applied` first if this job was never logged, or double-checking the filename. Do not create a row.
 
-**Exactly one match:** proceed to Step 3.
+**`match_count` is more than 1:** this is expected, not just an edge case — reapplying to the same job after a rejection produces two rows that legitimately match on the same `<base-name>`. Show every candidate (`date_applied`, current `application_status`) and ask the user which one to update. Do not guess, and do not update more than one.
+
+**`match_count` is exactly 1:** proceed to Step 3.
 
 ---
 

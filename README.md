@@ -104,7 +104,7 @@ The 0-100 job-match score is built from four dimensions: Skill Overlap (0-30, re
 
 Claude does that classification work — it's genuine judgment and can't be scripted. The arithmetic on top of it (weighting, capping each dimension, and picking the interpretation label from the score) runs through `scripts/score_job_match.py` instead of Claude's own mental math, specifically so the same job scored against the same `template/` data produces the same numbers on a rerun — this was previously a source of real run-to-run variance. The suggested asking salary works the same way: it's positioned inside the posting's own stated range (or a researched range if none is posted) based on where the total score falls, checked against your floor in `variable-input/salary-expectations.md`, with the actual positioning math also run through that script.
 
-If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `tracking/scoring-fixtures/` has a few fabricated job postings (fictional companies, calibrated against the fictional example applicant, not real postings or personal data) with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
+If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `fixtures/scoring/` has a few fabricated job postings (fictional companies, calibrated against the fictional example applicant, not real postings or personal data) with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
 
 For the exact rubric wording, see `.claude/commands/tailor-resume.md`'s Step 2b (match score) and Step 2c (salary ask).
 
@@ -156,8 +156,12 @@ It visually inspects the reference (colors, fonts, header treatment, spacing, se
 root
 ├─ blueprint.md
 ├─ CLAUDE.md
+├─ fixtures
+│  ├─ commands/
+│  └─ scoring/
 ├─ formatting.md
 ├─ job-tracker.html
+├─ pytest.ini
 ├─ scripts
 │  ├─ find_jobs.py
 │  └─ score_job_match.py
@@ -169,11 +173,11 @@ root
 │  ├─ experience/
 │  |  └─ <YYYY-MM_YYYY-MM>.md
 │  └─ publications.md
+├─ tests/
 ├─ tracking
 │  ├─ applications.ndjson
 │  ├─ learned-preferences.md
-│  ├─ .learned-preferences.hash
-│  └─ scoring-fixtures/
+│  └─ .learned-preferences.hash
 ├─ variable-input
 │  ├─ career-goals/
 │  ├─ job-descriptions/
@@ -229,7 +233,7 @@ Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search
 ### scripts/score_job_match.py
 Deterministic arithmetic for the job-match score and salary-ask positioning (see "How the match score and salary ask are calculated" above) — weighting, capping, interpretation-band lookup, before/after comparison against a prior score, and salary-range positioning. Claude classifies (the judgment work), this script computes (the arithmetic), so the same classification always produces the same numbers. Invoked by `/tailor-resume`, not run directly.
 
-### tracking/scoring-fixtures/
+### fixtures/scoring/
 A few fabricated job postings (fictional companies, no real posting or personal data) with `expected.md` score-range files, calibrated against the fictional example applicant shipped in `template/` — used as a manual periodic check that edits to the scoring rubric or script haven't drifted its behavior. See its own `README.md` for the procedure.
 
 ### tracking/applications.ndjson
@@ -269,6 +273,22 @@ If present, the skill treats "Minimum acceptable" as a floor the suggested askin
 
 ### README.md
 This current file.
+
+## Testing
+Two layers, for two different kinds of logic.
+
+**`pytest`** — covers the deterministic Python scripts under `scripts/` (slug/base-name derivation, manifest hashing, hand-edit detection, tracking-row lookup, employment-gap math, PDF page counting, date-convention detection, and the job-match/salary arithmetic). No LLM involved, fully automated, safe to run as often as you like:
+```bash
+pip install pytest   # if you don't already have it
+pytest
+```
+
+**`/test-fixtures [all|scoring|tailor-resume|tracking|import-applications]`** — covers everything `pytest` can't, because it needs an LLM's judgment: the actual rubric scoring and the real command flows (`/tailor-resume`'s stale-check, `/update-status`'s ambiguous-reapply handling, `/import-applications`'s date-convention detection). Run with no argument to run every fixture, or name one set to run just that one:
+```bash
+/test-fixtures
+/test-fixtures scoring
+```
+It backs up and restores `tracking/applications.ndjson` automatically around the one fixture that touches it, and cleans up every scratch file it creates regardless of outcome — see `fixtures/scoring/README.md` and `fixtures/commands/README.md` for what each fixture actually checks and why. Run this from `main` (or a branch based on it) with `template/` unmodified — every fixture is calibrated against the example applicant (Dana Whitfield) shipped there, so results from a personalized `template/` won't be comparable.
 
 ## Caveats / WIP / YMMV
 The resume layout and formatting is based on my own hand-designed resume, which has in the past landed six-fgure jobs, and in the current year has landed interviews at FAANG-level companies. Feel free to modify the `formatting.md` and `blueprint.md` files to your own preference.

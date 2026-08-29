@@ -3,5 +3,7 @@ variable-input/job-descriptions/
 .env
 .venv-tools/
 scripts/__pycache__
+tests/__pycache__
+.pytest_cache/
 tracking/learned-preferences.md
 tracking/.learned-preferences.hash

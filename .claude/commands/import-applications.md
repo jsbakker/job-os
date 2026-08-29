@@ -182,7 +182,7 @@ Do not proceed to Step 5 until the user confirms the mapping, or corrects it and
 
 Apply the confirmed mapping to every entry in the source:
 
-- **Dates**: normalize to `YYYY-MM-DD`. Before converting any numeric-format date (e.g. `01/02/2026`), scan every date in the file first: if any date's first or second numeric component is ever >12, that unambiguously reveals whether the file uses `MM/DD/YYYY` or `DD/MM/YYYY`, and that convention applies to the whole file. Only if no date in the file ever disambiguates it is it genuinely ambiguous — in that case, ask the user once, upfront, which convention the file uses, rather than guessing per-row.
+- **Dates**: normalize to `YYYY-MM-DD`. Collect every raw numeric-format date string found in the source (e.g. `01/02/2026`) into `{"dates": [...]}` and run `python3 scripts/detect_date_convention.py --input <file>` (or pipe on stdin). If `convention` is not `"ambiguous"`, use its `normalized` mapping verbatim for every date. If `convention` is `"ambiguous"` (no date in the file ever disambiguates it), ask the user once, upfront, which convention the file uses, rather than guessing per-row.
 - **`job_id`**: coerce to a string. If it arrived as a numeric cell rendered as a float (e.g. `1234.0`), strip the trailing `.0` — the same normalization the old migration script applied; this is data hygiene, not a schema guess.
 - **`notes`**: plain string, same handling as any other free-text field — trim whitespace, empty string becomes `null`. This is where "Notes"/"Comments"/"Remarks"/etc. source columns land now, not folded into `application_status`.
 - **Blank entries**: skip entirely (don't append a row) only if every mapped field on that entry is empty. An entry with some fields present and others empty keeps the present fields and sets the rest to `null`.
@@ -193,12 +193,16 @@ Apply the confirmed mapping to every entry in the source:
 
 ## Step 6 — Deduplicate Against Existing Tracking Log
 
-Read `tracking/applications.ndjson` in full (if it exists — if it doesn't, every parsed row is new and this step is a no-op). For every entry parsed in Step 5, check it against **every** existing row using the same multi-signal match `/applied` Step 1 and `/update-status` Step 2 use:
+For every entry parsed in Step 5, look it up against the existing log:
 
-- `job_id` equality (only when both sides have a non-null `job_id`), **or**
-- `company` + `position_title` matching case-insensitively.
+```bash
+python3 scripts/find_tracking_row.py lookup --file tracking/applications.ndjson \
+  --job-id "<job_id, if non-null>" --company "<company>" --position-title "<position_title>"
+```
 
-Any match marks the parsed entry as a **likely duplicate**: skip it (don't append, and never merge into or overwrite the existing row's `application_status` — that's `/update-status`'s job) and record which existing row it matched, for the report.
+(This is the same script `/update-status` Step 2 uses, applied here with only the `job_id`/`company`/`position_title` signals — a parsed import entry has no `resume_file`/`cover_letter_file` yet, so `--base-name` never applies. Note `/applied` Step 1's own preflight duplicate check is a lighter, standalone `company`+`position_title` check, not this script — this step and `/update-status` Step 2 are the two callers using the full multi-signal lookup.)
+
+Any `match_count` > 0 marks the parsed entry as a **likely duplicate**: skip it (don't append, and never merge into or overwrite the existing row's `application_status` — that's `/update-status`'s job) and record which existing row it matched, for the report.
 
 Entries that share the same `company`+`position_title` as each other *within the source file itself* are not automatically duplicates — a genuine reapply produces two legitimate rows. Only flag those as suspicious if their dates are also suspiciously close or identical, and ask the user to confirm rather than silently importing or silently collapsing them.
 
@@ -251,9 +255,9 @@ This is the step that fixes the historical migration script's worst bug: it must
 
 A bulk import is a much bigger preference-signal event than a single `/applied` run, so refresh `tracking/learned-preferences.md` the same way `/applied` Step 8 does:
 
-1. If both `tracking/learned-preferences.md` and `tracking/.learned-preferences.hash` exist, check for hand-edits exactly as in `/learn-preferences` Step 4 (`shasum -a 256 tracking/learned-preferences.md`, compare to the hash sidecar) — ask before overwriting on a mismatch.
+1. Run `python3 scripts/hash_sidecar.py check --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash`. If `hand_edited` is `true`, ask before overwriting.
 2. Re-run `/learn-preferences` Steps 1-3 over the full log, including every row just imported, preserving existing wording and conclusions wherever the new rows don't materially change them.
-3. Write the refreshed file and hash sidecar as in `/learn-preferences` Step 5.
+3. Write the refreshed file, then run `python3 scripts/hash_sidecar.py write --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash`.
 4. If nothing material changed, report that plainly instead of manufacturing a change.
 
 ---

@@ -46,7 +46,7 @@ Check `tracking/applications.ndjson` (if it exists) for an existing row with the
 
 ## Step 2 — Pull Pipeline Data
 
-Derive `<base-name>` using the exact same normalization rule as `tailor-resume.md` Step 0 (applicant name + job description filename stem).
+Derive `<base-name>` via `python3 scripts/base_name.py applicant-job --applicant-name "<applicant name>" --job-filename "$ARGUMENTS"`.
 
 Check whether `output/<base-name>.manifest` exists:
 - If it exists, read `output.resume_pdf`, `output.cover_letter_pdf`, `job_match`, `suggested_asking_salary`, and `job_posting_salary_range` from it.
@@ -104,13 +104,9 @@ Append exactly one line to `tracking/applications.ndjson` (create the file if it
 
 Silently refresh `tracking/learned-preferences.md` so it never goes stale without the user having to remember `/learn-preferences`:
 
-1. If `tracking/learned-preferences.md` and `tracking/.learned-preferences.hash` both exist, check for hand-edits exactly like `/learn-preferences` Step 4:
-   ```bash
-   shasum -a 256 tracking/learned-preferences.md
-   ```
-   Compare to the contents of `tracking/.learned-preferences.hash`. On a mismatch, the user has hand-edited the file since the last auto-write — ask before overwriting, same as `/learn-preferences`.
+1. Run `python3 scripts/hash_sidecar.py check --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash`. If `hand_edited` is `true`, the user has hand-edited the file since the last auto-write — ask before overwriting, same as `/learn-preferences`.
 2. Re-run the same analysis as `/learn-preferences` Steps 1-3 (all rows, including the one just appended, plus career-goals). **Preserve existing wording and conclusions wherever the new row doesn't materially change them** — don't reword stable sections just because the command ran again; only touch what the new evidence actually shifts. This keeps the file stable to read and diff over time.
-3. Write the refreshed file and update `tracking/.learned-preferences.hash`, exactly as in `/learn-preferences` Step 5.
+3. Write the refreshed file, then run `python3 scripts/hash_sidecar.py write --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash` to update the sidecar.
 4. If nothing material changed, it's fine for the file's content to end up byte-identical — report that plainly rather than manufacturing a change.
 
 ---

@@ -68,17 +68,15 @@ Do not treat this as a strict filter rulebook — it's evidence for judgment cal
 
 ## Step 4 — Check for Hand-Edits Before Overwriting
 
-If both `tracking/learned-preferences.md` and `tracking/.learned-preferences.hash` already exist:
+Run:
 
 ```bash
-shasum -a 256 tracking/learned-preferences.md
+python3 scripts/hash_sidecar.py check --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash
 ```
 
-Compare the resulting hash to the contents of `tracking/.learned-preferences.hash`.
-- **Match:** no hand-edits since the last auto-write — proceed to Step 5 normally.
-- **Mismatch:** the user has edited the file since it was last generated. Show them a brief summary of what Step 3 would write instead, and ask whether to overwrite, merge (fold their edits' intent into the new version), or leave the file untouched this run. Do not silently overwrite hand-edited content.
-
-If either file is missing, this is a first-time generation — proceed directly to Step 5.
+- **`first_time` is `true`:** either file is missing — this is a first-time generation, proceed directly to Step 5.
+- **`hand_edited` is `false`:** no hand-edits since the last auto-write — proceed to Step 5 normally.
+- **`hand_edited` is `true`:** the user has edited the file since it was last generated. Show them a brief summary of what Step 3 would write instead, and ask whether to overwrite, merge (fold their edits' intent into the new version), or leave the file untouched this run. Do not silently overwrite hand-edited content.
 
 ---
 
@@ -108,7 +106,7 @@ Hand-edit this file freely — the next `/learn-preferences` or `/applied` run w
 
 Then write the hash sidecar:
 ```bash
-shasum -a 256 tracking/learned-preferences.md | awk '{print $1}' > tracking/.learned-preferences.hash
+python3 scripts/hash_sidecar.py write --file tracking/learned-preferences.md --sidecar tracking/.learned-preferences.hash
 ```
 
 ---
