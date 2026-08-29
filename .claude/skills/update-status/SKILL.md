@@ -5,6 +5,8 @@ description: Append a new stage to an existing job application's status in the t
 
 Append a new status stage to the tracking row for the following job: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/update-status` in the slash palette. In agents without slash syntax, treat this as the job description filename — and new status text — the user named in their request.)*
+
 The **first whitespace-separated token** of the argument above is the job description filename (resolved against `variable-input/job-descriptions/`, same convention as `/tailor-resume` and `/applied`). **Everything after it** is the new status text to append (e.g. "Screening interview", "Not Selected", "Offer Received").
 
 You are updating one field on an existing row in `tracking/applications.ndjson`. Rows are otherwise append-only (that's what `/applied` enforces) — this command is a deliberate, narrow exception scoped to exactly one field: `application_status`. Never create a new row here, and never touch any other field on the matched row.
@@ -12,6 +14,8 @@ You are updating one field on an existing row in `tracking/applications.ndjson`.
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/update-status help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 Check this **before** applying the first-token/rest-of-string split described above. If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) **in its entirety** — not just its first token — print the block below and stop. Do not run any other step.
 

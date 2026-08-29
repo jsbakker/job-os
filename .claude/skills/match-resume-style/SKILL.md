@@ -5,11 +5,15 @@ description: Regenerate formatting.md and blueprint.md to match the visual style
 
 Update the resume style to match this reference resume: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/match-resume-style` in the slash palette. In agents without slash syntax, treat this as the reference resume path the user named in their request.)*
+
 `formatting.md` (CSS) and `blueprint.md` (section layout/order) define the one look every `/tailor-resume` run produces. By default they encode the repo owner's own hand-picked style — this command lets anyone point at a resume whose look they actually want instead, and have those two files regenerated to match it, without inheriting someone else's design. The one non-negotiable constraint: never adopt a style element that would hurt ATS parsing, even if the reference resume uses it. When a reference element is ATS-risky, adapt it to the closest safe equivalent rather than silently dropping the idea, and say exactly what was changed and why.
 
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/match-resume-style help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real file path — print the block below and stop. Do not run any other step.
 
@@ -47,13 +51,13 @@ Confirm the file exists and is readable before doing anything else. If it doesn'
 
 ## Step 2 — Get the Reference Resume Into a Viewable Form
 
-- `.pdf`, `.png`, `.jpg`, `.jpeg` → use the `Read` tool directly. It renders PDF pages as images, which is what makes visual style analysis possible here (not just text extraction).
-- `.docx`, `.doc`, `.rtf` → convert to PDF first (same `textutil` tool `/import-applications` uses for Word documents), into a temp path, then `Read` that:
+- `.pdf`, `.png`, `.jpg`, `.jpeg` → read it directly with visual rendering. Most coding agents can render PDF/image pages visually, which is what makes visual style analysis possible here (not just text extraction).
+- `.docx`, `.doc`, `.rtf` → convert to PDF first (same `textutil` tool `/import-applications` uses for Word documents), into a temp path, then read that:
   ```bash
   TMPFILE=$(mktemp -t match-resume-style).pdf
   textutil -convert pdf -output "$TMPFILE" "<path>"
   ```
-  Read `$TMPFILE`, then clean it up (`rm "$TMPFILE"`) once you're done with it.
+  Read `$TMPFILE` with the same visual rendering, then clean it up (`rm "$TMPFILE"`) once you're done with it.
 - If the file is scanned-image-only, encrypted, or otherwise yields no usable visual content, tell the user plainly and stop rather than guessing at a style from nothing.
 
 ---
@@ -75,7 +79,7 @@ Look at the rendered resume and identify:
 
 ## Step 4 — ATS Red-Flag Screening
 
-Cross-check everything extracted in Step 3 against the exact ATS rules `tailor-resume.md` Step 8 already enforces on every generated resume: no tables, text boxes, or multi-column layouts; no images or embedded graphics; plain-word section headers only; consistent, parseable dates with plain hyphens; plain bullet characters only (`•` or `-`, never a custom Unicode glyph); no photos.
+Cross-check everything extracted in Step 3 against the exact ATS rules `tailor-resume/SKILL.md` Step 8 already enforces on every generated resume: no tables, text boxes, or multi-column layouts; no images or embedded graphics; plain-word section headers only; consistent, parseable dates with plain hyphens; plain bullet characters only (`•` or `-`, never a custom Unicode glyph); no photos.
 
 For every element that conflicts with those rules, don't just drop it silently — adapt it to the closest safe equivalent and record what you did:
 
@@ -118,7 +122,7 @@ Do not proceed to Step 6 until the user confirms, or adjusts and re-confirms.
 
 ## Step 6 — Write formatting.md
 
-Keep the existing JSON element-mapping structure and every existing CSS class name exactly as they are (`tailor-resume.md`'s HTML-class-application logic depends on those class names existing verbatim: `.applicant-name`, `.applicant-title`, `.contact-info`, `.section-header`, `.summary-paragraph`, `.section-item-header`, `.job-skills-title`, `.job-skills`, plus the bare `p`, `li`, and `*` selectors). Only the style *values* inside those rules change — colors, font-family stack, font sizes, spacing, header treatment — per the confirmed style from Step 5.
+Keep the existing JSON element-mapping structure and every existing CSS class name exactly as they are (`tailor-resume/SKILL.md`'s HTML-class-application logic depends on those class names existing verbatim: `.applicant-name`, `.applicant-title`, `.contact-info`, `.section-header`, `.summary-paragraph`, `.section-item-header`, `.job-skills-title`, `.job-skills`, plus the bare `p`, `li`, and `*` selectors). Only the style *values* inside those rules change — colors, font-family stack, font sizes, spacing, header treatment — per the confirmed style from Step 5.
 
 ---
 

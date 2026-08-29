@@ -25,7 +25,7 @@ Each `expected.md` states *ranges*, not exact points — the itemized classifica
 
 ## When to run it
 
-- After editing Step 2b or Step 2c's wording in `.claude/commands/tailor-resume.md`.
+- After editing Step 2b or Step 2c's wording in `.claude/skills/tailor-resume/SKILL.md`.
 - After editing `scripts/score_job_match.py`'s arithmetic.
 - Periodically (every few months) as a sanity check even without an edit, since prompt behavior can drift across model versions.
 

@@ -1,15 +1,17 @@
 # Job OS
-The job search in 2026 is broken and applicants can feel powerless in an opaque system that often works against them. It's time to change that. Job OS is a set of commands, which in combination, give you an environment to build the next steps in your career.
+The job search in 2026 is broken and applicants can feel powerless in an opaque system that often works against them. It's time to change that. Job OS is a set of AI agent skills, which in combination, give you an environment to build the next steps in your career.
 
 ## TL;DR
-This project leverages agentic AI (Claude) to put the power back into the job seeker's hands. This repo provides a structured layout, a bluepreint, a data template, and several Claude commands that help with the following:
+This project leverages agentic AI to put the power back into the job seeker's hands. This repo provides a structured layout, a bluepreint, a data template, and several AI-driven skills that help with the following:
 
 - Helps tailor resumes for specific job descriptions without embellishing*.
 - Helps find local job postings that match your career goals and salary expectations, while learning your job application patterns. WIP; YMMV.
 - Helps track the application status of your job search journey — browse it live in the job tracker (see image below).
 - Helps find gaps that you should prep for in upcoming interviews.
 
-\**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can prompt Claude to fix it.*
+\**Instructed to follow bullet points from template as close to verbatim as possible. If the resume summary or cover letter doesn't sound genuine, you can ask your AI coding agent to fix it.*
+
+> **Primarily built and tested on Claude Code.** Every skill is written in the vendor-neutral [Agent Skills](https://code.claude.com/docs/en/agent-sdk/skills) format and shares one `AGENTS.md`, so other agentic tools (Codex CLI, Gemini CLI, Copilot CLI, OpenCode) should work — but Claude Code is where the day-to-day dogfooding happens, so treat it as the most reliable path if something behaves differently elsewhere. See "Choosing a tool & what it costs" below before picking one.
 
 ![Job Tracking](doc/images/job-tracker.png)
 
@@ -18,7 +20,7 @@ This project leverages agentic AI (Claude) to put the power back into the job se
 - In a text editor, provide everything about your career in the `template` folder.
 - Add your goals to the `variable-input/career-goals` folder.
 - Optionally, add a `variable-input/salary-expectations.md`.
-- Start a Claude Code session in the root folder.
+- Start your AI coding agent's session in the root folder (see Requirements below for setup, per tool).
 - (Optional) Don't want the default look? `/match-resume-style <path-to-a-resume-you-like>` reworks the style to match it, ATS red flags aside.
 - Run `/find-job-descriptions` to find matches.
 - Run `/tailor-resume [job description name]` to tailor to a specific job.
@@ -56,11 +58,33 @@ This is also based on real world use of a longer employment history. In a long a
 
 ## Requirements
 - Text editor (preferably with Markdown support)
-- Claude Code (with a Claude account)
+- A unix-based command-line terminal for macOS, Linux or WSL
+- An agentic AI coding tool — pick one and follow its setup guide:
+  - [Claude Code](setup-claude-code.md) (Strongly recommended; others are Proof of Concept only)
+  - [OpenAI Codex CLI](setup-openai-codex.md)
+  - [Google Gemini CLI](setup-gemini-cli.md)
+  - [GitHub Copilot CLI](setup-gh-copilot-cli.md)
+  - [OpenCode](setup-opencode.md) (including OpenCode with a local Ollama model, for fully offline use) (failed initial testing)
+
+  See `AGENTS.md`'s "Supported AI Coding Agents" section for how each one invokes this repo's skills.
 - pandoc
 - weasyprint
 
 `brew install pandoc weasyprint`
+
+### Choosing a tool & what it costs
+
+This repo is primarily developed and tested against **Claude Code** — the other tools are supported through the shared `AGENTS.md` + Agent Skills format, and should work, but Claude Code is the most exercised path.
+
+Don't assume a free account is enough to actually run one of these agents — for most of them, it isn't:
+
+- **Claude Code** has no free tier at all. A Pro, Max, Teams, or Enterprise plan (or pay-per-token Console/API billing) is required — the free claude.ai plan doesn't include Claude Code.
+- **Google Gemini CLI**'s generous free tier (Google account login) was shut down in mid-2026. Realistically you'll need a billing-enabled Gemini API key, or accept Google's much smaller free quota via its newer Antigravity CLI.
+- **OpenAI Codex CLI** is documented by OpenAI as included in every ChatGPT plan, including Free — but codex CLI will ask you to login with a paid account. Logging in with the free account still works, but YMMV.
+- **GitHub Copilot CLI** has a genuine free tier for individuals (2,000 completions + 50 chat requests/month, no credit card) that explicitly includes CLI access — the one traditional-vendor option with real no-cost access as of this writing.
+- **OpenCode** is free and open-source, and can run entirely at no cost against a local Ollama model — no account of any kind required. See [setup-opencode.md](setup-opencode.md)'s offline section.
+
+Account requirements and free-tier limits change often — treat the above as a starting point, not a guarantee, and check each tool's own setup guide/pricing page before committing.
 
 
 ## Instructions
@@ -69,16 +93,18 @@ To generate a resume:
 1. Populate your applicant information into the template as per the provided  "Project Structure" section below.
 2. Populate the career goals with your intentions. See `career-goals/goals.md`.
 3. Place a job descrption file in the `job-descriptions` folder. It can be markdown, plain text, or even a PDF — or let `/find-job-descriptions` (below) find and download one for you.
-4. Open Claude Code in the root folder. E.g.:
+4. Open your AI coding agent's session in the root folder. E.g., for Claude Code:
 ```bash
 cd <path-to-repo>
 claude
 ```
-5. Pass the job description to the tailor-resume Claude skill. E.g.:
+(See Requirements above for the other supported tools' equivalent.)
+5. Pass the job description to the `tailor-resume` skill. In Claude Code:
 ```bash
 /tailor-resume <name-of-job-desctiption-file>
 ```
-6. Review the claude output for job match, suggested asking salary, and ATS validation.
+In other tools, just ask in natural language — e.g. "tailor my resume for `<name-of-job-description-file>`".
+6. Review the output for job match, suggested asking salary, and ATS validation.
 7. View the output PDF in the resulting `output` folder.
 8. Once you've submitted the application, record it:
 ```bash
@@ -102,11 +128,11 @@ It prefers that future-dated stage if you've logged one; otherwise it predicts t
 ### How the match score and salary ask are calculated
 The 0-100 job-match score is built from four dimensions: Skill Overlap (0-30, required/preferred skills from the posting checked against your `template/`), Experience Relevance (0-30, how directly your work history maps to the role's responsibilities and stack), Seniority Match (0-20, title/scope/years against the role's expected level), and Transferable Skills (0-20, adjacent value that isn't a direct requirement match). Each one is built as an itemized, cited checklist — every skill, responsibility, and transferable item gets a specific match/partial/absent (or direct/adjacent/absent) call with a citation back to `template/`, not a single holistic guess.
 
-Claude does that classification work — it's genuine judgment and can't be scripted. The arithmetic on top of it (weighting, capping each dimension, and picking the interpretation label from the score) runs through `scripts/score_job_match.py` instead of Claude's own mental math, specifically so the same job scored against the same `template/` data produces the same numbers on a rerun — this was previously a source of real run-to-run variance. The suggested asking salary works the same way: it's positioned inside the posting's own stated range (or a researched range if none is posted) based on where the total score falls, checked against your floor in `variable-input/salary-expectations.md`, with the actual positioning math also run through that script.
+Your AI coding agent does that classification work — it's genuine judgment and can't be scripted. The arithmetic on top of it (weighting, capping each dimension, and picking the interpretation label from the score) runs through `scripts/score_job_match.py` instead of the agent's own mental math, specifically so the same job scored against the same `template/` data produces the same numbers on a rerun — this was previously a source of real run-to-run variance. The suggested asking salary works the same way: it's positioned inside the posting's own stated range (or a researched range if none is posted) based on where the total score falls, checked against your floor in `variable-input/salary-expectations.md`, with the actual positioning math also run through that script.
 
 If you rerun `/tailor-resume` on a job you've already scored, a fresh classification still happens every time (that part isn't cached), so a meaningfully different result — 8+ points, or a change in interpretation label — is called out explicitly in the report with a per-dimension before/after, rather than silently replacing the old number. `fixtures/scoring/` has a few fabricated job postings (fictional companies, calibrated against the fictional example applicant, not real postings or personal data) with expected score ranges, used as a periodic manual sanity check that rubric edits haven't drifted the scoring behavior.
 
-For the exact rubric wording, see `.claude/commands/tailor-resume.md`'s Step 2b (match score) and Step 2c (salary ask).
+For the exact rubric wording, see `.claude/skills/tailor-resume/SKILL.md`'s Step 2b (match score) and Step 2c (salary ask).
 
 ### Finding jobs automatically
 
@@ -154,6 +180,7 @@ It visually inspects the reference (colors, fonts, header treatment, spacing, se
 ## Project Structure
 ```
 root
+├─ AGENTS.md
 ├─ blueprint.md
 ├─ CLAUDE.md
 ├─ fixtures
@@ -165,6 +192,11 @@ root
 ├─ scripts
 │  ├─ find_jobs.py
 │  └─ score_job_match.py
+├─ setup-claude-code.md
+├─ setup-gemini-cli.md
+├─ setup-gh-copilot-cli.md
+├─ setup-openai-codex.md
+├─ setup-opencode.md
 ├─ template
 │  ├─ all-skills.md
 │  ├─ certifications.md
@@ -187,13 +219,19 @@ root
 ```
 
 ### .claude (hidden)
-Includes settings for permissions to `output` folder, and defintions for resume-building commands.
+Includes settings for permissions to `output` folder, and definitions for resume-building skills (Agent Skills format — also discoverable by other AI coding agents via the `.agents/skills` symlink). See `AGENTS.md` for the full picture of what runs where.
+
+### AGENTS.md
+The canonical project instructions, shared across every supported AI coding agent (see the Requirements section above and the "Supported AI Coding Agents" section inside this file). `CLAUDE.md` is a thin wrapper that imports it for Claude Code specifically.
+
+### setup-claude-code.md, setup-openai-codex.md, setup-gemini-cli.md, setup-gh-copilot-cli.md, setup-opencode.md
+One setup guide per supported agentic AI tool: install command, sign-in, and how that tool picks up this repo's `AGENTS.md` and skills. Linked from the Requirements section above — start there rather than here.
 
 ### blueprint.md
-Defines the resume's section layout and order — a token template, not the assembly logic (that lives in `.claude/commands/tailor-resume.md`, which treats this file's Layout section as the single source of truth for section order). Regenerated by `/match-resume-style` if you customize the look.
+Defines the resume's section layout and order — a token template, not the assembly logic (that lives in `.claude/skills/tailor-resume/SKILL.md`, which treats this file's Layout section as the single source of truth for section order). Regenerated by `/match-resume-style` if you customize the look.
 
 ### CLAUDE.md
-Instructions for Claude Code on how to use this project. Loaded into every new session.
+Thin Claude-Code-specific wrapper that imports `AGENTS.md` (the shared instructions every supported tool reads) — see the `AGENTS.md` entry above. Loaded into every new Claude Code session.
 
 ### formatting.md
 CSS class mapping and styles for every resume section. Regenerated by `/match-resume-style` if you customize the look.
@@ -231,7 +269,7 @@ Used by `/find-job-descriptions`: title keywords to match (any one), target loca
 Queries the Adzuna jobs API and maintains a seen-jobs ledger (`output/job-search-seen.json`) so repeated searches don't re-fetch or re-score the same posting. Invoked by `/find-job-descriptions`, not run directly.
 
 ### scripts/score_job_match.py
-Deterministic arithmetic for the job-match score and salary-ask positioning (see "How the match score and salary ask are calculated" above) — weighting, capping, interpretation-band lookup, before/after comparison against a prior score, and salary-range positioning. Claude classifies (the judgment work), this script computes (the arithmetic), so the same classification always produces the same numbers. Invoked by `/tailor-resume`, not run directly.
+Deterministic arithmetic for the job-match score and salary-ask positioning (see "How the match score and salary ask are calculated" above) — weighting, capping, interpretation-band lookup, before/after comparison against a prior score, and salary-range positioning. The agent classifies (the judgment work), this script computes (the arithmetic), so the same classification always produces the same numbers. Invoked by `/tailor-resume`, not run directly.
 
 ### fixtures/scoring/
 A few fabricated job postings (fictional companies, no real posting or personal data) with `expected.md` score-range files, calibrated against the fictional example applicant shipped in `template/` — used as a manual periodic check that edits to the scoring rubric or script haven't drifted its behavior. See its own `README.md` for the procedure.
@@ -293,31 +331,31 @@ It backs up and restores `tracking/applications.ndjson` automatically around the
 ## Caveats / WIP / YMMV
 The resume layout and formatting is based on my own hand-designed resume, which has in the past landed six-fgure jobs, and in the current year has landed interviews at FAANG-level companies. Feel free to modify the `formatting.md` and `blueprint.md` files to your own preference.
 
-The `/tailor-resume` command has been through dogfooding for months, but hasn't gone through third-party testing. The cover letters coming out of here may sometimes use strong wording, overselling yourself. If you are not comfortable with that, don't use it.
+The `tailor-resume` skill has been through dogfooding for months, but hasn't gone through third-party testing. The cover letters coming out of here may sometimes use strong wording, overselling yourself. If you are not comfortable with that, don't use it.
 
-The other commands are even newer. Specifically, the `/find-job-descriptions` command needs more testing outside of my personalized job search preferences.
+The other skills are even newer. Specifically, `find-job-descriptions` needs more testing outside of my personalized job search preferences.
 
 ## Troubleshooting
 > I keep getting prompted for permissions when tailoring my resume.
 
-Use Shift+Tab in Claude Code to cycle through modes to Auto Mode.
+In Claude Code, press Shift+Tab to cycle through modes to Auto Mode. Other tools have their own approval/auto-approve setting — check your tool's setup guide (linked from Requirements above) or its own docs.
 
 
-> The `/tailor-resume` command wrote a resume summary (or cover letter) that I cannot defend in an interview.
+> The `/tailor-resume` skill wrote a resume summary (or cover letter) that I cannot defend in an interview.
 
-Prompt Claude code to correct the summary, mentioning which part is not factual. It can re-word it for you and re-generate a new .pdf with a new summary and the rest of the resume still intact. Same for the cover letter.
-
-
-> The `/tailor-resume` command excluded some of my work experience.
-
-To maximize the value of the limited bullet point space and keeping the resume under two pages, older experiences may be culled completely (only if it doesn't leave a chronological gap), especially when JD relevance is low. If you think this is a mistake, prompt Claude Code to include it.
+Ask your AI coding agent to correct the summary, mentioning which part is not factual. It can re-word it for you and re-generate a new .pdf with a new summary and the rest of the resume still intact. Same for the cover letter.
 
 
-> The `/tailor-resume` command only added one bullet point for a position that I worked at for eight years.
+> The `/tailor-resume` skill excluded some of my work experience.
 
-It is probably an older job with lower relevance. The tailoring prefers bullet space for newer positions and JD relevance. If there's still room on the second page, just prompt Claude code to add more bullets.
+To maximize the value of the limited bullet point space and keeping the resume under two pages, older experiences may be culled completely (only if it doesn't leave a chronological gap), especially when JD relevance is low. If you think this is a mistake, ask your AI coding agent to include it.
 
 
-> The `/find-job-descriptions` keeps pulling the same job postings.
+> The `/tailor-resume` skill only added one bullet point for a position that I worked at for eight years.
+
+It is probably an older job with lower relevance. The tailoring prefers bullet space for newer positions and JD relevance. If there's still room on the second page, just ask your AI coding agent to add more bullets.
+
+
+> The `/find-job-descriptions` skill keeps pulling the same job postings.
 
 Depending on your `job-search-preferences.md` and `salary-expectations.md` content, you could be limiting the search. On top of that, it is for job postings in the last three weeks.

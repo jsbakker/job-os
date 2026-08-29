@@ -9,7 +9,9 @@ Analyze the applicant's job-application history and career goals to build (or re
 
 ## Help Check
 
-If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive), print the block below and stop. Do not run any other step. (This command takes no other arguments — anything else in `$ARGUMENTS` is ignored.)
+(This exact-match escape hatch is for Claude Code's `/learn-preferences help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
+
+If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive), print the block below and stop. Do not run any other step. (This skill takes no other arguments — anything else in `$ARGUMENTS` is ignored.)
 
 ```
 /learn-preferences — Analyzes tracking/applications.ndjson and your career-goals files to build or refresh tracking/learned-preferences.md, the profile /find-job-descriptions uses to keep off-pattern reaches out of its main report.

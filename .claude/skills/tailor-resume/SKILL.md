@@ -5,11 +5,15 @@ description: Tailor the applicant's resume for a specific job description file
 
 Tailor the applicant's resume for the following job description file: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/tailor-resume` in the slash palette — e.g. `/tailor-resume Acme-Corp-Staff-Software-Engineer.md`. In agents without slash syntax, treat this as the job description filename the user named in their request.)*
+
 You are an expert resume crafter and career coach. Follow every step below in order. Do not skip validation steps. If any validation fails, iterate until it passes before moving on.
 
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/tailor-resume help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
 
@@ -80,7 +84,7 @@ If `all_match` is `false` (or the manifest is absent), note whether the existing
 
 Read the following files before doing any writing:
 
-1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting. **Use the `Read` tool directly on the file path — do NOT attempt shell-based extraction (pdftotext, python subprocess, etc.).** The Read tool handles PDFs natively; shell tools are not reliably installed.
+1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting. **Read the file directly using native text/PDF extraction — do not shell out to a separate extraction utility such as pdftotext or a subprocess-based parser.** PDF files can be read directly; coding agents extract PDF text natively, and shell-based PDF utilities are not reliably installed.
 2. Invoke the `load-career-profile` skill in `full` mode to load `template/` (full career data — contact info, skills, experience with date ranges from filenames, education, certifications, publications) and `variable-input/career-goals/*.md`.
 3. `formatting.md` — CSS class mapping and visual styles
 4. `variable-input/salary-expectations.md` — if present, the applicant's current salary and/or minimum/target compensation. Optional; skip silently if absent. Freeform, e.g.:
@@ -200,11 +204,11 @@ This step produces a report-only recommendation — it does not appear on the re
 
 2. **Read the applicant's floor, if provided.** If `variable-input/salary-expectations.md` exists, note the current salary, minimum acceptable, and/or target range (in the currency from step 1). This is a hard floor: the suggested range's low end must never be recommended below the applicant's stated minimum. If the file doesn't exist, there is no floor to enforce — proceed on computed value alone.
 
-3. **Establish the applicant's general market worth.** Independent of this specific job posting, determine what a candidate with this applicant's title, years of experience, seniority (reuse the Seniority Match reasoning from Step 2b), and core skills typically commands. Use `WebSearch` to find current data (prefer sources like levels.fyi, Glassdoor, Payscale, Bureau of Labor Statistics, or recent salary-survey aggregators; prefer results from the last ~2 years) for the applicant's location. Record this as the applicant's market-worth range, labeled with its currency code, with a cited source.
+3. **Establish the applicant's general market worth.** Independent of this specific job posting, determine what a candidate with this applicant's title, years of experience, seniority (reuse the Seniority Match reasoning from Step 2b), and core skills typically commands. Search the web to find current data (prefer sources like levels.fyi, Glassdoor, Payscale, Bureau of Labor Statistics, or recent salary-survey aggregators; prefer results from the last ~2 years) for the applicant's location. Record this as the applicant's market-worth range, labeled with its currency code, with a cited source.
 
 4. **Establish the job's compensation anchor.**
    - If the job posting states a salary or range explicitly, use it verbatim (currency and all) as the primary anchor — this is always preferred over research.
-   - If it doesn't, use `WebSearch` to find a market range for this specific title/level/location/company as posted, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
+   - If it doesn't, search the web for a market range for this specific title/level/location/company as posted, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
 
 5. **Position the ask within the anchor range.** Do not hand-pick a percentage yourself — run:
    ```bash
@@ -305,10 +309,10 @@ Do not trim content that is load-bearing for the job description match.
 
 ## Step 8 — ATS Friendliness Check
 
-ATS systems receive the **PDF**, not the markdown. Run all checks against the rendered PDF output. Start by extracting the PDF text using the `Read` tool directly on `output/<base-name>.pdf` — the Read tool handles PDFs natively; do NOT use shell-based extraction (pdftotext, python subprocess, etc.).
+ATS systems receive the **PDF**, not the markdown. Run all checks against the rendered PDF output. Start by extracting the PDF text directly from `output/<base-name>.pdf` using native PDF extraction — do NOT use shell-based extraction (pdftotext, python subprocess, etc.).
 
 **Structure checks — verify in both the extracted PDF text and the markdown source (must all pass):**
-- [ ] The `Read` tool produces non-empty, readable text from the PDF (empty or garbled output means the PDF is image-based or encrypted — FAIL).
+- [ ] Direct PDF text extraction produces non-empty, readable text from the PDF (empty or garbled output means the PDF is image-based or encrypted — FAIL).
 - [ ] No tables, text boxes, or multi-column layouts in the markdown source.
 - [ ] No images or embedded graphics in the markdown source.
 - [ ] Section headers use plain words only: Summary, Skills, Experience, Education, Certifications, Publications, References.

@@ -1,7 +1,7 @@
 """Shared fixtures for the scripts/ pytest suite.
 
 Testing strategy: entirely subprocess-based. Every script under scripts/ is
-invoked exactly as the .claude/commands/*.md files invoke it -- as a real
+invoked exactly as the .claude/skills/*/SKILL.md files invoke it -- as a real
 `python3 scripts/X.py ...` subprocess -- rather than imported and called
 in-process. This is the most faithful-to-real-usage approach and requires
 zero changes to the scripts themselves.
@@ -45,7 +45,7 @@ def run_script():
     """run_script(script_name, *args, cwd=None, input=None) -> CompletedProcess
 
     Invokes the real scripts/<script_name> as a subprocess, mirroring exactly
-    how the .claude/commands/*.md files invoke it.
+    how the .claude/skills/*/SKILL.md files invoke it.
     """
     def _run(script_name, *args, cwd=None, input=None):
         return _run_python(SCRIPTS_DIR / script_name, *args, cwd=cwd, input=input)

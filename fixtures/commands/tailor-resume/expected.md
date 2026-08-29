@@ -28,7 +28,7 @@ Output is already up to date — no inputs have changed.
   Cover Letter PDF : output/dana-whitfield-fixture-01-strong-match-cover-letter.pdf
 ```
 
-No re-read of `template/`, no `WebSearch` calls, no regenerated PDF — the second run should be fast and should not touch any output file's modification time. This is `scripts/manifest_check.py compare` reporting `all_match: true` and both cover-letter files existing, driving Step 0's skip-to-Step-11 branch. If the second run instead re-runs the full pipeline, that's the actual regression this fixture exists to catch.
+No re-read of `template/`, no web searches, no regenerated PDF — the second run should be fast and should not touch any output file's modification time. This is `scripts/manifest_check.py compare` reporting `all_match: true` and both cover-letter files existing, driving Step 0's skip-to-Step-11 branch. If the second run instead re-runs the full pipeline, that's the actual regression this fixture exists to catch.
 
 ## Interpreting a miss
 

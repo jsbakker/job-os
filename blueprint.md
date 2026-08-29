@@ -1,5 +1,5 @@
 # Resume Blueprint
-This file defines the visual layout of the resume. See the "Project Structure" section in the `README.md`. The operative execution instructions are in `.claude/commands/tailor-resume.md`.
+This file defines the visual layout of the resume. See the "Project Structure" section in the `README.md`. The operative execution instructions are in `.claude/skills/tailor-resume/SKILL.md`.
 
 ## Layout
 The following layout places the structured data in a visual order.

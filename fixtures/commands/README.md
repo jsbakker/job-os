@@ -18,7 +18,7 @@ Same rule as `fixtures/scoring/`: these fixtures are calibrated against Dana Whi
 
 ## When to run it
 
-- After editing any of the five scripts named above, or the `.claude/commands/*.md` steps that invoke them.
+- After editing any of the five scripts named above, or the `.claude/skills/*/SKILL.md` steps that invoke them.
 - Periodically as a sanity check, same as `fixtures/scoring/`.
 
 ## Cleanup
