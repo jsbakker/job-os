@@ -38,38 +38,31 @@ Example:
 
 ## Step 0 — Stale Check
 
-Derive the output base name using the same normalization rule defined in Step 3. Run this exact command to compute it:
+Derive the output base name (the applicant's name comes from `template/contact-info.txt`'s `name:` field):
 
 ```bash
-JOB_STEM=$(basename "$ARGUMENTS" | sed 's/\.[^.]*$//')  # strip extension
-APPLICANT=$(grep '^name:' template/contact-info.txt | sed 's/name: *//' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-BASE_NAME="${APPLICANT}-$(echo "$JOB_STEM" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/--*/-/g; s/^-//; s/-$//')"
+APPLICANT=$(grep '^name:' template/contact-info.txt | sed 's/name: *//')
+BASE_NAME=$(python3 scripts/base_name.py applicant-job --applicant-name "$APPLICANT" --job-filename "$ARGUMENTS")
 echo "$BASE_NAME"
 ```
 
 Check whether `output/<base-name>.manifest` exists.
 
-If it does, rehash every file listed under `"inputs"` in the manifest:
+If it does, compare current input hashes against it:
 
 ```bash
-shasum -a 256 blueprint.md formatting.md \
-  template/contact-info.txt template/all-skills.md \
-  template/certifications.md template/education.md template/publications.md \
-  template/experience/*.md \
-  variable-input/career-goals/*.md \
-  "variable-input/job-descriptions/$ARGUMENTS" \
-  $(ls variable-input/salary-expectations.md 2>/dev/null)
+python3 scripts/manifest_check.py compare --job-description "$ARGUMENTS" --manifest "output/$BASE_NAME.manifest"
 ```
 
-`variable-input/salary-expectations.md` is optional — the `ls ... 2>/dev/null` glob contributes nothing if it doesn't exist, so its absence never breaks the hash comparison.
+Use its `all_match` field directly — do not hand-compare hashes. `variable-input/salary-expectations.md` is optional and handled internally by the script; its absence never breaks the comparison.
 
-Compare each hash to the manifest. If **all hashes match**, check whether the cover letter files also exist:
+If `all_match` is `true`, check whether the cover letter files also exist:
 
 ```bash
 ls output/<base-name>-cover-letter.md output/<base-name>-cover-letter.pdf 2>/dev/null
 ```
 
-- If all hashes match **and** both cover letter files exist — skip to Step 11 and report:
+- If `all_match` is `true` **and** both cover letter files exist — skip to Step 11 and report:
   ```
   Output is already up to date — no inputs have changed.
     Resume Markdown  : output/<base-name>.md
@@ -77,9 +70,9 @@ ls output/<base-name>-cover-letter.md output/<base-name>-cover-letter.pdf 2>/dev
     Cover Letter MD  : output/<base-name>-cover-letter.md
     Cover Letter PDF : output/<base-name>-cover-letter.pdf
   ```
-- If all hashes match **but** cover letter files are missing — skip to Step 8b to generate the cover letter only, then update the manifest and report.
+- If `all_match` is `true` **but** cover letter files are missing — skip to Step 8b to generate the cover letter only, then update the manifest and report.
 
-If **any hash differs** (or the manifest is absent), note whether the existing manifest (if any) has a `job_match` block, and its path (`output/<base-name>.manifest`) — Step 2b's Reconciliation subsection will need it later, even when the reason a rerun was triggered is unrelated to scoring (e.g. only `blueprint.md` changed). Then continue to Step 1.
+If `all_match` is `false` (or the manifest is absent), note whether the existing manifest (if any) has a `job_match` block, and its path (`output/<base-name>.manifest`) — Step 2b's Reconciliation subsection will need it later, even when the reason a rerun was triggered is unrelated to scoring (e.g. only `blueprint.md` changed). Then continue to Step 1.
 
 ---
 
@@ -88,10 +81,9 @@ If **any hash differs** (or the manifest is absent), note whether the existing m
 Read the following files before doing any writing:
 
 1. `variable-input/job-descriptions/$ARGUMENTS` — the target job posting. **Use the `Read` tool directly on the file path — do NOT attempt shell-based extraction (pdftotext, python subprocess, etc.).** The Read tool handles PDFs natively; shell tools are not reliably installed.
-2. All files under `variable-input/career-goals/` — the applicant's career intentions
-3. All files recursively under `template/` — the applicant's full career data
-4. `formatting.md` — CSS class mapping and visual styles
-5. `variable-input/salary-expectations.md` — if present, the applicant's current salary and/or minimum/target compensation. Optional; skip silently if absent. Freeform, e.g.:
+2. Invoke the `load-career-profile` skill in `full` mode to load `template/` (full career data — contact info, skills, experience with date ranges from filenames, education, certifications, publications) and `variable-input/career-goals/*.md`.
+3. `formatting.md` — CSS class mapping and visual styles
+4. `variable-input/salary-expectations.md` — if present, the applicant's current salary and/or minimum/target compensation. Optional; skip silently if absent. Freeform, e.g.:
    ```
    Current salary: $110,000
    Minimum acceptable: $120,000
@@ -100,12 +92,6 @@ Read the following files before doing any writing:
    Currency: CAD
    ```
    The `Currency` field, if present, takes priority for all salary figures in Step 2c (see that step's currency rule below).
-
-Extract from the template:
-- Applicant name, title, phone, email, and web/LinkedIn from `template/contact-info.txt`
-- Full skills list (`template/all-skills.md`)
-- All experience entries, noting date ranges from filenames (`YYYY-MM_YYYY-MM.md`)
-- Education, certifications, publications
 
 ---
 
@@ -181,12 +167,7 @@ Guidance for building each section (the judgment work — this is what you're ac
 
 ### Interpretation
 
-The script looks up the interpretation label from a fixed band table — do not eyeball this yourself, especially near a boundary:
-- 85–100: Exceptional match — tailor hard and apply with confidence.
-- 70–84: Strong match — a few gaps; cover letter should address them.
-- 55–69: Solid match with notable gaps — worth applying; be transparent about growth areas.
-- 40–54: Stretch role — apply only if genuinely interested; cover letter must compensate.
-- Under 40: Reach application — significant gaps; apply selectively.
+Use the `interpretation` label from `scripts/score_job_match.py score`'s output verbatim — it's derived from `INTERPRETATION_BANDS`, the single source of truth for the band boundaries. Do not restate or eyeball the bands here, especially near a boundary.
 
 ### Reconciliation
 
@@ -249,7 +230,7 @@ This step produces a report-only recommendation — it does not appear on the re
 
 ## Step 3 — Generate the Markdown Resume
 
-The output base name is already computed from Step 0. For reference, the normalization rule is: take the applicant's name (from `contact-info.txt`) and the job description filename stem, convert both to lowercase, replace any non-alphanumeric characters with hyphens, collapse consecutive hyphens, and strip leading/trailing hyphens. Example: `Acme_Corp_-_Senior_iOS_Developer.pdf` → `jane-doe-acme-corp-senior-ios-developer`. All outputs go in the `output/` directory (create it if it does not exist).
+The base name was computed in Step 0 via `scripts/base_name.py applicant-job` — reuse it, do not recompute by hand. All outputs go in the `output/` directory (create it if it does not exist).
 
 Write the tailored resume to: `output/<base-name>.md`
 
@@ -304,21 +285,13 @@ A `WARNING: Ignored overflow-x: auto at ...` line from weasyprint is expected an
 
 ## Step 7 — Validate Page Count (≤ 2 pages)
 
-Check the page count of the generated PDF using `mdimport` + `mdls` — this is the primary method on this project's dependency set (only `pandoc`/`weasyprint` are documented as installed; do not assume `poppler`/`pdfinfo` is present):
+Check the page count of the generated PDF:
 
 ```bash
-# mdimport forces an immediate Spotlight index of the file, making mdls accurate.
-# Do NOT use mdls alone — it reads Spotlight's async index and will return a stale
-# count for a newly-generated PDF.
-mdimport output/<base-name>.pdf && mdls -name kMDItemNumberOfPages output/<base-name>.pdf
+python3 scripts/pdf_page_count.py output/<base-name>.pdf
 ```
 
-Spotlight indexing is asynchronous even after `mdimport`, so the immediately-following `mdls` occasionally returns `(null)` on the first try (this happens intermittently, not on every run). **If it returns `(null)` or empty, retry the same `mdls` command once or twice** — no `mdimport` re-run needed — before concluding something is wrong.
-
-If `pdfinfo` happens to be installed (`command -v pdfinfo`), it's a faster one-shot alternative with no retry needed:
-```bash
-pdfinfo output/<base-name>.pdf | grep "Pages:"
-```
+This handles the `mdimport`/`mdls` retry dance (and uses `pdfinfo` directly if it happens to be installed) internally — use its stdout integer directly.
 
 **If the PDF exceeds 2 pages**, trim content in the markdown and regenerate:
 1. First pass: reduce bullets in older or least-relevant experience entries (keep the 2 strongest per role).
@@ -343,7 +316,7 @@ ATS systems receive the **PDF**, not the markdown. Run all checks against the re
 - [ ] Job titles, company names, and locations appear on or directly adjacent to their date range — not separated by unrelated content.
 - [ ] Bullet points use a plain character (•) or a hyphen (-), not custom Unicode symbols.
 - [ ] The extracted PDF text contains at least one email address (format: `x@y.z`) and at least one phone number. Check the contact line.
-- [ ] No employment gap exceeds 2 years between adjacent experience entries. Parse date ranges from all included experience entries, sort them chronologically, and compute the gap between each end date and the next start date. If any gap exceeds 24 months, FAIL and identify the specific gap (e.g., "30-month gap between Role A end Apr 2020 and Role B start Oct 2022").
+- [ ] No employment gap exceeds 2 years between adjacent experience entries. Build `{"roles": [{"role", "start": "YYYY-MM", "end": "YYYY-MM"|"present"}, ...]}` from all included experience entries and run `python3 scripts/check_gaps.py --input <file>` (or pipe the JSON on stdin) — use its `gaps` list verbatim, do not sort or diff dates by hand. If any `gap_months` exceeds 24, FAIL and identify the specific gap (e.g., "30-month gap between Role A end Apr 2020 and Role B start Oct 2022").
 - [ ] If the job posting explicitly states a required degree or certification (using language like "required", "must have", "Bachelor's required"), that credential appears in the extracted PDF text under Education or Certifications.
 
 **Keyword checks — verify in extracted PDF text (must all pass):**
@@ -410,9 +383,9 @@ Then generate the PDF:
 pandoc output/<base-name>-cover-letter.md -o output/<base-name>-cover-letter.pdf --pdf-engine=weasyprint -c output/resume-style.css
 ```
 
-Check the page count using the same method and retry-on-`(null)` guidance as Step 7:
+Check the page count using the same script as Step 7:
 ```bash
-mdimport output/<base-name>-cover-letter.pdf && mdls -name kMDItemNumberOfPages output/<base-name>-cover-letter.pdf
+python3 scripts/pdf_page_count.py output/<base-name>-cover-letter.pdf
 ```
 
 If the cover letter exceeds 1 page, tighten the prose and regenerate until it fits.
@@ -421,19 +394,13 @@ If the cover letter exceeds 1 page, tighten the prose and regenerate until it fi
 
 ## Step 9 — Write Manifest
 
-Hash every input file and write `output/<base-name>.manifest`:
+Hash every input file:
 
 ```bash
-shasum -a 256 blueprint.md formatting.md \
-  template/contact-info.txt template/all-skills.md \
-  template/certifications.md template/education.md template/publications.md \
-  template/experience/*.md \
-  variable-input/career-goals/*.md \
-  "variable-input/job-descriptions/$ARGUMENTS" \
-  $(ls variable-input/salary-expectations.md 2>/dev/null)
+python3 scripts/manifest_check.py hash --job-description "$ARGUMENTS"
 ```
 
-Write the result as JSON to `output/<base-name>.manifest`:
+Use its JSON output verbatim as the `"inputs"` field below. Write the result as JSON to `output/<base-name>.manifest`:
 ```json
 {
   "generated": "<YYYY-MM-DD>",

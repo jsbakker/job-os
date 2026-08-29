@@ -43,7 +43,15 @@ Examples:
 
 Read `variable-input/job-descriptions/<filename>`. Extract company, position title, req/job ID, and (uncommon but check) any explicit description of the interview process/stages the posting itself states.
 
-Derive `<base-name>` using the identical normalization rule embedded in `tailor-resume.md` Step 0. Locate the matching row in `tracking/applications.ndjson` using the same unified multi-signal lookup `update-status.md` Step 2 uses (`resume_file`/`cover_letter_file` containing `<base-name>`, `job_id` match, or company+title match, deduped). If more than one row matches, ask which one, same as `/update-status`.
+Derive `<base-name>` via `python3 scripts/base_name.py applicant-job --applicant-name "<applicant name>" --job-filename "<filename>"`. Locate the matching row with:
+
+```bash
+python3 scripts/find_tracking_row.py lookup --file tracking/applications.ndjson \
+  --base-name "<base-name>" --job-id "<req ID, if found>" \
+  --company "<company>" --position-title "<title>"
+```
+
+If `match_count` is more than 1, ask which one, same as `/update-status`.
 
 **Unlike `/update-status`, a zero-match result here is not an error** — it just means no interview is scheduled or logged yet. Continue to Step 2 with no row; Step 3 will fall back to general early-stage prep.
 
@@ -76,9 +84,7 @@ Work through this priority order and stop at the first that applies:
 
 Read, in full:
 - The job description (already read in Step 1)
-- **All** of `template/experience/*.md` — including the `# Side Notes (for context)` section of each entry. `/tailor-resume` is forbidden from using Side Notes as resume content, but this command explicitly may use them as spoken-conversation material (see Step 6).
-- `template/all-skills.md`
-- All `variable-input/career-goals/*.md` (flag and skip any clearly non-literal/joke file, same as `/learn-preferences` does)
+- Invoke the `load-career-profile` skill in `full-with-side-notes` mode to load all of `template/experience/*.md` (including each entry's Side Notes — `/tailor-resume` is forbidden from using them as resume content, but this command explicitly may, see Step 6), `template/all-skills.md`, and `variable-input/career-goals/*.md` (flag/skip non-literal files, same as `/learn-preferences`).
 - If `output/<base-name>.manifest` exists, its `job_match` block — **as optional background color only**. It answers "does the resume match this JD," not "what should this candidate study or highlight for this stage" — mention it in passing if relevant, but the gap analysis in Step 5 is always computed fresh against the full experience data (which the resume rubric never even looked at, since it excludes Side Notes).
 
 ---
