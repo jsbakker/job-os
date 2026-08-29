@@ -93,21 +93,12 @@ Skip this step entirely if the run scope from Step 1 does not include `tracking`
 **Do this before touching any of the three files below, and do not proceed to Step 6 until it succeeds.**
 
 ```bash
-BACKUP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/resume-blueprint-test-fixtures-backup.XXXXXX")
-echo "Backup directory: $BACKUP_DIR"
-for f in tracking/applications.ndjson tracking/learned-preferences.md tracking/.learned-preferences.hash; do
-  if [ -f "$f" ]; then
-    cp "$f" "$BACKUP_DIR/$(basename "$f")"
-    echo "EXISTED: $f"
-  else
-    echo "ABSENT: $f"
-  fi
-done
+python3 scripts/tracking_backup.py backup
 ```
 
-Record, for each of the three files, whether it `EXISTED` (backed up — must be restored byte-for-byte afterward) or was `ABSENT` (nothing to restore — must be deleted afterward if the fixture creates it). `$BACKUP_DIR` is under the system temp directory, **outside the repository tree** — never a sibling path inside `tracking/`, per `fixtures/commands/README.md`'s explicit note about avoiding a stray backup file getting swept into a future `git add -A`.
+This copies each of `tracking/applications.ndjson`, `tracking/learned-preferences.md`, and `tracking/.learned-preferences.hash` to a fixed location outside the repository tree, and reports per file whether it `"existed"` (backed up — must be restored byte-for-byte afterward) or was `"absent"` (nothing to restore — must be deleted afterward if the fixture creates it). Record this JSON output for use in Step 7.
 
-If `mktemp` or any `cp` above fails, stop immediately and report the failure — do not proceed to Step 6 without a confirmed-good backup.
+If the command exits non-zero with `"error": "backup_dir_already_exists"`, a prior run's backup was never cleaned up — inspect `tracking_backup.py`'s reported backup path yourself before deciding whether it's safe to proceed, then stop here rather than guessing.
 
 ---
 
@@ -116,7 +107,7 @@ If `mktemp` or any `cp` above fails, stop immediately and report the failure —
 For each of `fixture-01-strong-match`, `fixture-02-stretch`, `fixture-03-ambiguous-middle`, in order, run this full sequence and **fully clean up before moving to the next fixture** — never batch cleanup at the end of this step:
 
 1. Confirm `variable-input/job-descriptions/<slug>.md` does not already exist (`fixture-01-strong-match.md`, `fixture-02-stretch.md`, `fixture-03-ambiguous-middle.md` respectively — matching each directory's name). If it does, warn that this looks like a leftover from a prior interrupted run, ask whether it's safe to overwrite, and only proceed on confirmation.
-2. `cp fixtures/scoring/<dir>/job-description.md variable-input/job-descriptions/<slug>.md`
+2. Read `fixtures/scoring/<dir>/job-description.md` and write its content, unchanged, to `variable-input/job-descriptions/<slug>.md` via the Write tool.
 3. Run `.claude/commands/tailor-resume.md`'s Steps 0-11 inline, right now, with `$ARGUMENTS` set to `<slug>.md`.
 4. From the Step 11 report, extract the `job_match` total, all four sub-scores, and the interpretation label. Compare each against that fixture's expected ranges:
 
@@ -138,7 +129,7 @@ Record all three fixtures' results for the final report.
 This fixture reuses `fixture-01-strong-match`'s posting under the identical destination filename the `scoring` set uses (`fixture-01-strong-match.md`) — per `fixtures/commands/README.md`, deliberately, to avoid duplicating fabricated content. **This is only safe because Step 4 (if it also ran) fully cleaned up before this step started.** Never run this step's copy while a `scoring`-set copy of the same file is still present.
 
 1. Confirm `variable-input/job-descriptions/fixture-01-strong-match.md` doesn't already exist (same leftover-check as Step 4.1).
-2. `cp fixtures/scoring/fixture-01-strong-match/job-description.md variable-input/job-descriptions/fixture-01-strong-match.md`
+2. Read `fixtures/scoring/fixture-01-strong-match/job-description.md` and write its content, unchanged, to `variable-input/job-descriptions/fixture-01-strong-match.md` via the Write tool.
 3. Run `.claude/commands/tailor-resume.md`'s Steps 0-11 inline, right now, with `$ARGUMENTS` set to `fixture-01-strong-match.md`. This is **run 1**. Record: the base name, whether `output/dana-whitfield-fixture-01-strong-match.manifest` was created with an `inputs` block, the job-match total/interpretation (72–88, "Strong match" or "Exceptional match" — same fixture as Step 4's), that the Reconciliation subsection reported no prior manifest, and that both PDFs were produced and passed ATS checks. Note the modification times of all four output files.
 4. Immediately run `.claude/commands/tailor-resume.md`'s Steps 0-11 inline again, with the same `$ARGUMENTS`, **making no changes to any input file in between**. This is **run 2 — the actual point of this fixture**. Verify:
    - Step 0 short-circuited: the report is exactly the "Output is already up to date" block naming all four output files.
@@ -155,8 +146,8 @@ This fixture reuses `fixture-01-strong-match`'s posting under the identical dest
 Step 3's backup must have completed successfully before this step begins. Everything in this step must be followed by Step 7 (Restore) **no matter what happens here** — a failure, an unexpected error, or an out-of-range/regression result partway through must never skip Step 7.
 
 1. Confirm none of the three destination filenames already exist in `variable-input/job-descriptions/` (`Meridian-Cloud-Systems-Senior-Software-Engineer.md`, `Vantage-Point-Analytics-Senior-Software-Engineer.md`, `Kestrel-Data-Systems-Staff-Software-Engineer.md`); warn and confirm before overwriting if they do, same as Step 4.1.
-2. Copy all three JD stubs from `fixtures/commands/applied-update-status-prep-interview/` into `variable-input/job-descriptions/`.
-3. `cp fixtures/commands/applied-update-status-prep-interview/fixture-applications.ndjson tracking/applications.ndjson` — this is the one destructive copy in this entire command. It is only safe because Step 3 already backed up whatever was there.
+2. Read each of the three JD stubs from `fixtures/commands/applied-update-status-prep-interview/` and write each, unchanged, to the matching filename under `variable-input/job-descriptions/` via the Write tool.
+3. Read `fixtures/commands/applied-update-status-prep-interview/fixture-applications.ndjson` and write its content, unchanged, to `tracking/applications.ndjson` via the Write tool — this is the one destructive overwrite in this entire command. It is only safe because Step 3 already backed up whatever was there.
 4. Run `.claude/commands/update-status.md`'s Steps 1-5 inline, right now, with `$ARGUMENTS` set to `Meridian-Cloud-Systems-Senior-Software-Engineer.md Screening interview`. Verify `match_count` was 1 (unambiguous) and the proposed `application_status` reads `"Applied - Screening interview (<today's date>)"`. Approve the confirmation on the fixture's behalf (this is fabricated data that Step 7 will fully restore regardless) and let the write complete. Mark `PASS`/`FAIL`.
 5. Run `.claude/commands/update-status.md`'s Steps 1-5 inline again, with `$ARGUMENTS` set to `Vantage-Point-Analytics-Senior-Software-Engineer.md Screening interview`. Verify `match_count` was 2 and that **both** candidate rows (the May 10 "Not Selected" row and the July 15 reapply) were shown with their `date_applied`/`application_status`, and that a question was asked rather than a silent pick. **The check is fully satisfied by confirming this disambiguation behavior — deliberately do not pick one and do not complete a write here**, since there is no canonical right answer and forcing one adds an arbitrary mutation with no corresponding regression-test value. If it instead silently picked one, mark this **REGRESSION** per the fixture's own `expected.md` ("a real bug, not variance").
 6. Run `.claude/commands/prep-interview.md`'s Steps 1-10 inline, with `$ARGUMENTS` set to `Kestrel-Data-Systems-Staff-Software-Engineer.md`. Verify `match_count` was 0 and that this was **not** treated as an error — it should have continued into general early-stage prep. If it stopped with an error instead, mark **REGRESSION**. Note the output file path written for cleanup.
@@ -170,22 +161,14 @@ Step 3's backup must have completed successfully before this step begins. Everyt
 Run this even if Step 6 failed, errored, or reported a regression. Do not skip any part of it.
 
 ```bash
-for f in tracking/applications.ndjson tracking/learned-preferences.md tracking/.learned-preferences.hash; do
-  base=$(basename "$f")
-  if [ -f "$BACKUP_DIR/$base" ]; then
-    cp "$BACKUP_DIR/$base" "$f"
-    echo "restored: $f"
-  else
-    rm -f "$f"
-    echo "removed (did not exist before this run): $f"
-  fi
-done
-rm -rf "$BACKUP_DIR"
+python3 scripts/tracking_backup.py restore
 ```
+
+Its JSON output reports, per file, `"restored"` (copied back from the backup), `"removed"` (deleted because it didn't exist before Step 3's backup), or `"already_absent"` (didn't exist before and still doesn't — nothing to do). Cross-check this against Step 3's recorded `"existed"`/`"absent"` result for each file: every `"existed"` file should now read `"restored"`, and every `"absent"` file should now read `"removed"` or `"already_absent"`. If any file's outcome doesn't match what Step 3 recorded, stop and report the mismatch explicitly rather than assuming it's fine.
 
 Then delete the scratch files Step 6 created, regardless of outcome: the three copied JD stubs under `variable-input/job-descriptions/`, and the two `output/*-interview-prep.md` files noted in Steps 6.6/6.7.
 
-Confirm the restore worked: re-read `tracking/applications.ndjson` (if it should now exist) and spot-check it matches the backup, or confirm it's now absent (if it didn't exist before). Report this confirmation explicitly — don't just assume the `cp`/`rm` succeeded silently.
+Confirm the restore worked: re-read `tracking/applications.ndjson` (if it should now exist) and spot-check its content looks right, or confirm it's now absent (if it didn't exist before). Report this confirmation explicitly — don't just assume the script succeeded silently.
 
 ---
 
@@ -197,7 +180,7 @@ No backup is needed for this fixture set specifically — its own `expected.md` 
 2. At Step 4 (field mapping confirmation), compare the inferred mapping against: `Date Applied`→`date_applied`, `Company`→`company`, `Position`→`position_title`, `Status`→`application_status`, `Notes`→`notes`. Mark `PASS`/`FAIL`, then approve so the run can continue to the actual check.
 3. At Step 7 (import preview), compare the four normalized dates against: `03/04/2026`→`2026-04-03`, `22/06/2026`→`2026-06-22`, `05/02/2026`→`2026-02-05`, `11/07/2026`→`2026-07-11`, and confirm no per-row ambiguity question was asked (the file-wide convention should have resolved upfront from `22/06/2026`). Mark `PASS`/`FAIL`.
 4. **Cancel at this preview — do not confirm.** Nothing is appended to `tracking/applications.ndjson`. This is mandatory per the fixture's own `expected.md`; treat a successful cancel as part of the passing criteria, not just an afterthought.
-5. Supplementary check (the genuinely-ambiguous branch): copy `fixtures/commands/import-applications/fixture-legacy-tracker.csv` to a fresh `mktemp` temp file **outside the repo**, with the `22/06/2026` row removed. Run `.claude/commands/import-applications.md`'s Steps 1-10 inline again against that scratch path. Verify `convention: "ambiguous"` is detected and Step 5 asks once, upfront, which convention to use, rather than guessing per row. Cancel here too. Delete the scratch file afterward regardless of outcome.
+5. Supplementary check (the genuinely-ambiguous branch): read `fixtures/commands/import-applications/fixture-legacy-tracker.csv`, remove the `22/06/2026` row, and write the remaining rows via the Write tool to a fixed scratch path, `output/test-fixtures-ambiguous-scratch.csv`. Run `.claude/commands/import-applications.md`'s Steps 1-10 inline again against that scratch path. Verify `convention: "ambiguous"` is detected and Step 5 asks once, upfront, which convention to use, rather than guessing per row. Cancel here too. Delete `output/test-fixtures-ambiguous-scratch.csv` afterward regardless of outcome.
 
 ---
 
@@ -244,7 +227,7 @@ Test Fixtures — <all|scoring|tailor-resume|tracking|import-applications> — <
 
 ## Overall
   <N> fixture checks run, <P> passed, <F> failed, <R> regressions.
-  All scratch files confirmed removed: variable-input/job-descriptions/*, output/dana-whitfield-fixture-*, output/*-interview-prep.md.
+  All scratch files confirmed removed: variable-input/job-descriptions/*, output/dana-whitfield-fixture-*, output/*-interview-prep.md, output/test-fixtures-ambiguous-scratch.csv.
 
 git status:
 <verbatim output of `git status`>
