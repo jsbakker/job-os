@@ -20,19 +20,19 @@ You are updating one field on an existing row in `tracking/applications.ndjson`.
 Check this **before** applying the first-token/rest-of-string split described above. If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) **in its entirety** — not just its first token — print the block below and stop. Do not run any other step.
 
 ```
-/update-status — Appends a new stage to an existing application's status in tracking/applications.ndjson (e.g. turning "Applied" into "Applied - Screening interview (Aug 12)"), after showing you the exact resulting text and getting confirmation.
+/update-status — Appends a new stage to an existing application's status in tracking/applications.ndjson (e.g. turning "Applied" into "Applied\nScreening interview (Aug 12)", rendered by job-tracker.html as two bullets), after showing you the exact resulting text and getting confirmation.
 
 Usage:
   /update-status <job-description-file> <new-status-text>
 
 What it does:
   - Locates the matching row in tracking/applications.ndjson using the job-description file (matches on resume/cover-letter filename, req ID, or company+title — asks you to pick if more than one row matches, e.g. after a reapply)
-  - Builds the proposed new application_status string, adding today's date to the new stage if you didn't already include one
-  - Shows you that exact string and waits for confirmation before writing anything
+  - Builds the new application_status string, adding today's date to the new stage if you didn't already include one
+  - For "Not Selected" or "Rejected" (a dead end with no future date to track), auto-dates and writes without asking; for every other stage, shows you the exact string and waits for confirmation before writing anything
   - Updates only that one field on that one row
 
 Gotchas:
-  - Never writes without confirmation first — nothing is saved until you approve the shown string
+  - Never writes without confirmation first, except for a dated "Not Selected"/"Rejected" stage — those write immediately since there's no date to get wrong on a dead end
   - Never guesses which row to update — if more than one matches, it asks; if none match, it stops rather than creating a new row (run /applied first)
   - Doesn't refresh tracking/learned-preferences.md — a status change carries no new title/language/seniority signal
 
@@ -71,17 +71,18 @@ python3 scripts/find_tracking_row.py lookup --file tracking/applications.ndjson 
 
 ## Step 3 — Build and Confirm the Proposed Update
 
-Never silently inject a date or write the field without the user seeing the exact result first:
+Never silently inject a date or write the field without the user seeing the exact result first — except the one narrow carve-out in step 3 below for an undated "Not Selected"/"Rejected" stage, where there is nothing left to confirm:
 
 1. Take the new status text — everything in `$ARGUMENTS` after the filename token.
-2. Determine the append style from the matched row's *current* `application_status`:
-   - If it contains a newline (legacy bullet-style rows from the historical spreadsheet import), append in that same style: `"\n- <text>"`.
-   - Otherwise append inline: `" - <text>"`.
+2. Append style: `job-tracker.html` splits `application_status` on newlines to render each stage as its own bullet (`statusSegments()` in `job-tracker.html`), stripping any leading `"- "` on each line but not otherwise treating inline `" - "` text as a separate stage. So the new stage must always be newline-separated from what's already there:
    - If `application_status` is currently `null` or empty, the new value is just `<text>`, no separator.
-3. If `<text>` doesn't already look like it contains a date, propose adding today's date as `" (Mon D)"` (e.g. `(Aug 21)`) — but this is a **suggestion to confirm, not a silent default**. Backfilling a stage that happened days ago is a normal use case here; silently stamping today's date would record wrong data with no visible sign it happened.
-4. Show the user the **full resulting `application_status` string** (existing text plus the proposed addition) and ask them to confirm, adjust the date, or cancel. This same step is also the idempotency check — if the proposed addition looks like a near-duplicate of the most recent stage already recorded, the user will see that before confirming and can cancel.
+   - Otherwise append `"\n<text>"` (a leading `"- "` on the new line is optional — the tracker strips it either way — but never join with an inline `" - "` on the same line, since that would collapse into one bullet instead of two).
+3. If `<text>` doesn't already look like it contains a date, decide how to add today's date as `" (Mon D)"` (e.g. `(Aug 21)`):
+   - **Terminal outcome — no prompt.** If `<text>`'s leading word(s), case-insensitively, are "Not Selected" or "Rejected", auto-append today's date with no confirmation question about the date. A closed-out application has no future date left to track or get wrong: today is simply the day the outcome was recorded, backfilling it later is trivial if ever needed, and asking here is friction with no offsetting benefit.
+   - **Everything else — suggest and confirm.** For any other stage text (e.g. "Screening interview", "Offer Received"), propose the same `" (Mon D)"` addition but treat it as a **suggestion to confirm, not a silent default**. Backfilling a stage that happened days ago is a normal use case here; silently stamping today's date would record wrong data with no visible sign it happened.
+4. Show the user the **full resulting `application_status` string** (existing text plus the addition). For the terminal-outcome case above, this can be shown as the confirmed result already being written (no separate question needed) — mention it plainly in the Step 5 report. For every other case, ask the user to confirm, adjust the date, or cancel before writing. This confirmation step is also the idempotency check for non-terminal stages — if the proposed addition looks like a near-duplicate of the most recent stage already recorded, the user will see that before confirming and can cancel.
 
-Do not proceed to Step 4 until the user confirms.
+Do not proceed to Step 4 until the user confirms — except the terminal-outcome, auto-dated case in step 3.3/3.4, which proceeds straight to Step 4.
 
 ---
 
