@@ -25,6 +25,17 @@ Usage:
     # anchor range, based on the total score.
     python3 scripts/score_job_match.py salary-position --anchor-low 150450 --anchor-high 194700 \\
         --total-score 62 --transferable-score 14
+
+    # Derive a contract/hourly billing-rate anchor from an FTE salary using
+    # the standard 1.5x-2x contractor markup convention (self-employment
+    # tax, self-funded benefits, no PTO, income-gap coverage).
+    python3 scripts/score_job_match.py contract-rate --annual-salary <current-or-target-annual-salary>
+
+    # Compare take-home pay between a current salary and a proposed one,
+    # using real marginal tax brackets for one of a small, explicitly-dated
+    # set of supported jurisdictions (see JURISDICTIONS below).
+    python3 scripts/score_job_match.py net-pay-compare --current-gross <current-annual-salary> --current-employment-type employee \\
+        --proposed-gross <proposed-annual-salary> --proposed-employment-type employee|self-employed --jurisdiction <jurisdiction-code>
 """
 import argparse
 import json
@@ -32,6 +43,89 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# ---------------------------------------------------------------------------
+# Tax-bracket data for net-pay comparisons. Deliberately narrow and NOT tied
+# to any one adopter's location: only jurisdictions with a verified, dated,
+# public government table are listed, as a small illustrative set an adopter
+# can extend with their own province/state/country. Never guess a bracket
+# table for an unsupported jurisdiction -- compute_net_pay() returns an
+# explicit "unsupported jurisdiction" error instead, and the calling skill
+# step must skip the comparison rather than fabricate one.
+#
+# CPP/EI are federal (apply to every Canadian province/territory), sourced
+# from CRA/Service Canada rate announcements. Provincial brackets/BPA are
+# sourced from each province's own tax authority. All figures are tax year
+# 2026 -- refresh this table (and TAX_YEAR) each January, and add more
+# provinces/states/countries here rather than assuming any one is "the"
+# supported jurisdiction.
+TAX_YEAR = 2026
+
+CA_FEDERAL_2026_BRACKETS = [
+    (0, 58523, 0.14),
+    (58523, 117045, 0.205),
+    (117045, 181440, 0.26),
+    (181440, 258482, 0.29),
+    (258482, None, 0.33),
+]
+CA_FEDERAL_2026_BPA = {"max": 16452, "min": 14829, "phaseout_low": 181440, "phaseout_high": 258482}
+
+CA_2026_CPP = {
+    "exemption": 3500,
+    "ympe": 74600,
+    "yampe": 85000,
+    "employee_rate": 0.0595,
+    "employee_max": 4230.45,
+    "cpp2_employee_rate": 0.04,
+    "cpp2_employee_max": 416.00,
+    "self_employed_rate": 0.1190,
+    "self_employed_max": 8460.90,
+    "cpp2_self_employed_rate": 0.08,
+    "cpp2_self_employed_max": 832.00,
+}
+CA_2026_EI = {"max_insurable": 68900, "employee_rate": 0.0163, "employee_max": 1123.07}
+
+CA_BC_2026_BRACKETS = [
+    (0, 45654, 0.0506),
+    (45654, 91310, 0.0770),
+    (91310, 104835, 0.1050),
+    (104835, 127299, 0.1229),
+    (127299, 172602, 0.1470),
+    (172602, 240716, 0.1680),
+    (240716, None, 0.2050),
+]
+
+CA_ON_2026_BRACKETS = [
+    (0, 53891, 0.0505),
+    (53891, 107785, 0.0915),
+    (107785, 150000, 0.1116),
+    (150000, 220000, 0.1216),
+    (220000, None, 0.1316),
+]
+
+
+def _ca_jurisdiction(label: str, provincial_brackets, provincial_bpa: float) -> dict:
+    return {
+        "label": f"Canada federal + {label}, {TAX_YEAR} rates",
+        "federal_brackets": CA_FEDERAL_2026_BRACKETS,
+        "federal_bpa_max": CA_FEDERAL_2026_BPA["max"],
+        "federal_bpa_min": CA_FEDERAL_2026_BPA["min"],
+        "federal_bpa_phaseout_low": CA_FEDERAL_2026_BPA["phaseout_low"],
+        "federal_bpa_phaseout_high": CA_FEDERAL_2026_BPA["phaseout_high"],
+        "provincial_brackets": provincial_brackets,
+        "provincial_bpa": provincial_bpa,
+        "cpp": CA_2026_CPP,
+        "ei": CA_2026_EI,
+    }
+
+
+# Jurisdiction codes follow <ISO-3166 country>-<province/state abbreviation>,
+# e.g. CA-BC, CA-ON. This starter set covers two Canadian provinces; add more
+# entries (any country) the same way rather than special-casing one adopter.
+JURISDICTIONS = {
+    "CA-BC": _ca_jurisdiction("British Columbia", CA_BC_2026_BRACKETS, 11981),
+    "CA-ON": _ca_jurisdiction("Ontario", CA_ON_2026_BRACKETS, 12989),
+}
 
 # Same bands as tailor-resume.md Step 2b's "Interpretation" section -- this
 # table is the single source of truth for the label, so the LLM never has to
@@ -214,6 +308,132 @@ def cmd_salary_position(args):
     print(json.dumps(result, indent=2))
 
 
+def cmd_contract_rate(args):
+    fte_hourly = args.annual_salary / args.annual_hours
+    result = {
+        "fte_hourly_equivalent": round(fte_hourly, 2),
+        "floor_hourly": round(fte_hourly * args.floor_multiplier, 2),
+        "stretch_hourly": round(fte_hourly * args.stretch_multiplier, 2),
+        "floor_annualized_equivalent": round(fte_hourly * args.floor_multiplier * args.annual_hours),
+        "stretch_annualized_equivalent": round(fte_hourly * args.stretch_multiplier * args.annual_hours),
+        "floor_multiplier": args.floor_multiplier,
+        "stretch_multiplier": args.stretch_multiplier,
+        "annual_hours_basis": args.annual_hours,
+        "note": (
+            "Contract billing rate = FTE-equivalent hourly x 1.5-2x, covering self-employment "
+            "tax, self-funded benefits, no PTO, and income gaps between contracts. This is a "
+            "better-grounded anchor than generic salary-aggregator 'contractor hourly rate' "
+            "listings, which report realized/averaged contractor income, not billing rates."
+        ),
+    }
+    print(json.dumps(result, indent=2))
+
+
+def _bracket_tax(income: float, brackets) -> float:
+    tax = 0.0
+    for low, high, rate in brackets:
+        if income <= low:
+            break
+        upper = high if high is not None else income
+        taxed = min(income, upper) - low
+        if taxed > 0:
+            tax += taxed * rate
+    return tax
+
+
+def _marginal_rate(income: float, brackets) -> float:
+    for low, high, rate in brackets:
+        if high is None or income <= high:
+            return rate
+    return brackets[-1][2]
+
+
+def _federal_bpa(gross: float, j: dict) -> float:
+    lo, hi = j["federal_bpa_phaseout_low"], j["federal_bpa_phaseout_high"]
+    if gross <= lo:
+        return j["federal_bpa_max"]
+    if gross >= hi:
+        return j["federal_bpa_min"]
+    frac = (gross - lo) / (hi - lo)
+    return j["federal_bpa_max"] - frac * (j["federal_bpa_max"] - j["federal_bpa_min"])
+
+
+def compute_net_pay(gross: float, jurisdiction: str, employment_type: str) -> dict:
+    if jurisdiction not in JURISDICTIONS:
+        return {"error": f"unsupported jurisdiction: {jurisdiction}", "supported": list(JURISDICTIONS)}
+    j = JURISDICTIONS[jurisdiction]
+
+    federal_bpa = _federal_bpa(gross, j)
+    federal_tax = max(0.0, _bracket_tax(gross, j["federal_brackets"]) - federal_bpa * j["federal_brackets"][0][2])
+    provincial_tax = max(
+        0.0, _bracket_tax(gross, j["provincial_brackets"]) - j["provincial_bpa"] * j["provincial_brackets"][0][2]
+    )
+
+    cpp = j["cpp"]
+    ympe_band = max(0.0, min(gross, cpp["ympe"]) - cpp["exemption"])
+    yampe_band = max(0.0, min(gross, cpp["yampe"]) - cpp["ympe"])
+    if employment_type == "self-employed":
+        cpp1 = min(ympe_band * cpp["self_employed_rate"], cpp["self_employed_max"])
+        cpp2 = min(yampe_band * cpp["cpp2_self_employed_rate"], cpp["cpp2_self_employed_max"])
+        ei = 0.0
+    else:
+        cpp1 = min(ympe_band * cpp["employee_rate"], cpp["employee_max"])
+        cpp2 = min(yampe_band * cpp["cpp2_employee_rate"], cpp["cpp2_employee_max"])
+        ei_j = j["ei"]
+        ei = min(min(gross, ei_j["max_insurable"]) * ei_j["employee_rate"], ei_j["employee_max"])
+
+    total_tax = federal_tax + provincial_tax
+    total_deductions = total_tax + cpp1 + cpp2 + ei
+    net = gross - total_deductions
+
+    return {
+        "jurisdiction": jurisdiction,
+        "jurisdiction_label": j["label"],
+        "employment_type": employment_type,
+        "gross": round(gross, 2),
+        "federal_tax": round(federal_tax, 2),
+        "provincial_tax": round(provincial_tax, 2),
+        "cpp": round(cpp1 + cpp2, 2),
+        "ei": round(ei, 2),
+        "total_tax_and_deductions": round(total_deductions, 2),
+        "net": round(net, 2),
+        "average_tax_rate": round(total_deductions / gross, 4) if gross else 0.0,
+        "marginal_income_tax_rate": round(
+            _marginal_rate(gross, j["federal_brackets"]) + _marginal_rate(gross, j["provincial_brackets"]), 4
+        ),
+    }
+
+
+def cmd_net_pay(args):
+    print(json.dumps(compute_net_pay(args.gross, args.jurisdiction, args.employment_type), indent=2))
+
+
+def cmd_net_pay_compare(args):
+    current = compute_net_pay(args.current_gross, args.jurisdiction, args.current_employment_type)
+    proposed = compute_net_pay(args.proposed_gross, args.jurisdiction, args.proposed_employment_type)
+
+    if "error" in current or "error" in proposed:
+        print(json.dumps({"error": current.get("error") or proposed.get("error")}, indent=2))
+        return
+
+    gross_delta = proposed["gross"] - current["gross"]
+    net_delta = proposed["net"] - current["net"]
+
+    result = {
+        "current": current,
+        "proposed": proposed,
+        "gross_delta": round(gross_delta, 2),
+        "net_delta": round(net_delta, 2),
+        "share_of_raise_kept": round(net_delta / gross_delta, 4) if gross_delta else None,
+        # Under a marginal-bracket system, more gross income never produces
+        # less net income tax domestically. If this is ever true, it means
+        # a bad input (e.g. mismatched jurisdiction/employment type), not a
+        # real tax cliff -- treat it as a bug signal, not a reportable fact.
+        "net_decreased": net_delta < 0,
+    }
+    print(json.dumps(result, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deterministic scoring/salary arithmetic for /tailor-resume.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -234,6 +454,31 @@ def main():
     p_salary.add_argument("--transferable-score", type=int, required=True)
     p_salary.add_argument("--market-worth-high", type=float, default=None)
     p_salary.set_defaults(func=cmd_salary_position)
+
+    p_contract = sub.add_parser(
+        "contract-rate", help="Derive a contract/hourly billing-rate anchor from an FTE salary."
+    )
+    p_contract.add_argument("--annual-salary", type=float, required=True)
+    p_contract.add_argument("--annual-hours", type=float, default=2080.0)
+    p_contract.add_argument("--floor-multiplier", type=float, default=1.5)
+    p_contract.add_argument("--stretch-multiplier", type=float, default=2.0)
+    p_contract.set_defaults(func=cmd_contract_rate)
+
+    p_netpay = sub.add_parser("net-pay", help="Estimate net (after-tax) pay for one gross income.")
+    p_netpay.add_argument("--gross", type=float, required=True)
+    p_netpay.add_argument("--jurisdiction", required=True, choices=list(JURISDICTIONS))
+    p_netpay.add_argument("--employment-type", required=True, choices=["employee", "self-employed"])
+    p_netpay.set_defaults(func=cmd_net_pay)
+
+    p_netpay_cmp = sub.add_parser(
+        "net-pay-compare", help="Compare net (after-tax) pay between a current and a proposed gross income."
+    )
+    p_netpay_cmp.add_argument("--current-gross", type=float, required=True)
+    p_netpay_cmp.add_argument("--current-employment-type", required=True, choices=["employee", "self-employed"])
+    p_netpay_cmp.add_argument("--proposed-gross", type=float, required=True)
+    p_netpay_cmp.add_argument("--proposed-employment-type", required=True, choices=["employee", "self-employed"])
+    p_netpay_cmp.add_argument("--jurisdiction", required=True, choices=list(JURISDICTIONS))
+    p_netpay_cmp.set_defaults(func=cmd_net_pay_compare)
 
     args = parser.parse_args()
     args.func(args)

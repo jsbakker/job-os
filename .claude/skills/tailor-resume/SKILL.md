@@ -208,7 +208,14 @@ This step produces a report-only recommendation — it does not appear on the re
 
 4. **Establish the job's compensation anchor.**
    - If the job posting states a salary or range explicitly, use it verbatim (currency and all) as the primary anchor — this is always preferred over research.
-   - If it doesn't, search the web for a market range for this specific title/level/location/company as posted, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
+   - Otherwise, first check whether this is a **contract/hourly engagement** — language like "contract", "hourly rate", "day rate", "1099", "corp-to-corp"/"C2C", or "on incorporation", or the absence of any salaried-employment framing. If so:
+     - Do **not** anchor on generic salary-aggregator "hourly rate" or "contractor salary" listings. Those sites report realized/averaged contractor *income*, not billing *rates* — dividing a typical FTE salary survey by working hours (or reading a site's "contract consultant salary") systematically understates what a contractor needs to charge, because it doesn't price in self-employment tax, self-funded benefits, lost PTO, or gaps between contracts.
+     - Instead, ground the anchor in the applicant's own comp data via the standard contractor markup convention (contract billing rate ≈ 1.5x-2x the equivalent FTE hourly rate):
+       ```bash
+       python3 scripts/score_job_match.py contract-rate --annual-salary <current salary from salary-expectations.md, or the market-worth midpoint from step 3 if unavailable>
+       ```
+       Use its `floor_hourly`/`stretch_hourly` (and the `*_annualized_equivalent` fields) as the anchor low/high. Still do one corroborating web search for actual contractor/consultant *billing* rates (not converted-salary figures) in the applicant's field and location — cite it if it materially agrees or disagrees — but the multiplier-derived figures take precedence as the anchor unless the corroborating research is clearly stronger (e.g. a staffing agency's published rate card for this exact role type).
+   - For a salaried (non-contract) role with no posted range, search the web for a market range for this specific title/level/location/company, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
 
 5. **Position the ask within the anchor range.** Do not hand-pick a percentage yourself — run:
    ```bash
@@ -220,6 +227,22 @@ This step produces a report-only recommendation — it does not appear on the re
    - Do not inflate the number to force it up to the applicant's market worth if the job's anchor range is simply lower across the board — surface that as a flag instead (next step), don't mask it.
    - If a floor from `salary-expectations.md` exists and the script's `suggested_low` falls below it, use the floor as the suggested low end instead and flag the conflict.
    - If the job anchor and the applicant's market-worth figure ended up in different currencies (step 1 flagged a mismatch), position within the job anchor's own currency and range — don't pass a market-worth-high from a different currency into the script.
+   - For a contract role anchored via `contract-rate` above, also convert `suggested_low`/`suggested_high` back to an hourly figure (divide by the same `annual_hours_basis`) since that's the unit the applicant will actually quote.
+
+5b. **Net-pay sanity check.** A raise can look bigger on paper than it is in the bank, especially moving from salaried employment to a contract (higher marginal tax bracket eating more of each incremental dollar, plus — for a contract specifically — losing employer-paid benefits/PTO and paying both CPP portions instead of half). Compare current vs. proposed take-home so the applicant sees the real delta:
+   - First construct a jurisdiction code from the applicant's location (from `contact-info.txt`, or `salary-expectations.md`'s `Location`/`Currency` fields): `<ISO-3166 country code>-<province/state abbreviation>`, e.g. `CA-BC` for British Columbia, Canada or `CA-ON` for Ontario, Canada.
+   - Check whether that code is in the script's supported set — run `python3 scripts/score_job_match.py net-pay --help` and look at the `--jurisdiction` choices, or read `JURISDICTIONS` in `scripts/score_job_match.py` directly. Only a small, explicitly-dated set of jurisdictions is supported at any given time.
+   - If the applicant's jurisdiction isn't supported, skip this sub-step entirely and note in Step 11 that a net-pay comparison isn't available for the applicant's jurisdiction — never fabricate a bracket table for an unsupported location. (Adding a new jurisdiction is a one-time data-entry task in the script, sourced from that jurisdiction's own tax authority — not something to improvise per-run.)
+   - If `salary-expectations.md` has no stated current salary, skip this sub-step — there is nothing to compare against.
+   - Otherwise run:
+     ```bash
+     python3 scripts/score_job_match.py net-pay-compare \
+       --current-gross <current salary from salary-expectations.md> --current-employment-type employee \
+       --proposed-gross <the suggested range's midpoint, annualized> --proposed-employment-type <employee for a salaried role, self-employed for a contract> \
+       --jurisdiction <the jurisdiction code from above>
+     ```
+   - Report the `net_delta` and `share_of_raise_kept` (not just the gross delta), plus the `average_tax_rate` before and after, so the applicant sees how much of the raise actually survives taxes and (for a contract) the CPP/benefit shift.
+   - **Do not claim that moving into a higher tax bracket reduces net pay.** Canada's federal and provincial brackets are marginal — more gross income never produces less net income tax domestically (ignoring benefit-clawback edge cases like OAS, which don't apply here). What's real and worth surfacing plainly: the marginal rate on the *incremental* dollars is higher, so a smaller fraction of the raise is kept than the headline number suggests, and moving to contract status specifically adds the CPP/benefit/PTO costs already priced into step 4's multiplier. If the script's `net_decreased` field ever comes back `true`, that means a bad input (e.g. a swapped current/proposed value), not a real tax outcome — check the inputs rather than reporting it as a finding.
 
 6. **Flag mismatches explicitly — do not smooth them over:**
    - ⚠ **Pay cut risk:** the job's anchor range sits meaningfully (~10%+) below the applicant's market-worth range (only compare when both are in the same currency, or note that a currency difference makes the comparison approximate). State it plainly, especially if paired with a borderline Step 2b score.
@@ -227,8 +250,9 @@ This step produces a report-only recommendation — it does not appear on the re
    - ⚠ **No salary data found:** neither the posting nor web search produced usable compensation data (ambiguous location, obscure title, etc.) — say so rather than inventing a number, and omit the suggested range from Step 11.
    - ⚠ **Location assumed:** the applicant's location wasn't stated in `contact-info.txt` and had to be inferred.
    - ⚠ **Currency mismatch:** the job's anchor currency differs from the applicant's local currency — note both currencies explicitly and that the comparison is approximate absent a real conversion.
+   - ⚠ **Net-pay comparison unavailable:** the applicant's jurisdiction isn't in the script's supported tax-bracket set — Step 11 reports gross figures only.
 
-7. Record: the suggested asking range (with currency code), the anchor source (posted vs. researched, with citation), the applicant's market-worth range (with currency code and citation), the positioning rationale, and any flags. These are reported in Step 11 — do not write them into the resume or cover letter.
+7. Record: the suggested asking range (with currency code, and an hourly figure too for a contract role), the anchor source (posted / researched / contractor-multiplier, with citation), the applicant's market-worth range (with currency code and citation), the positioning rationale, the net-pay comparison (if run), and any flags. These are reported in Step 11 — do not write them into the resume or cover letter.
 
 ---
 
@@ -482,6 +506,8 @@ Suggested asking salary: <range with currency code from Step 2c, e.g. "$130,000 
   Rationale     : <one line tying the position within the range to the fit score and transferable skills>
 [If salary-expectations.md was found:]
   Applicant floor respected: <minimum from variable-input/salary-expectations.md>
+[If Step 2c's 5b net-pay sanity check ran:]
+  Net pay comparison (<jurisdiction label>): current $<current net> net vs. proposed $<proposed net> net (<share_of_raise_kept as a percent> of the raise kept after tax/CPP/EI)
 [If any salary flags exist:]
   ⚠ <salary flag 1>
   ⚠ <salary flag 2>
@@ -494,4 +520,4 @@ ATS warnings (<N>):
   ...
 ```
 
-Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit salary flag lines if step 2c raised none. Omit the "⚠ Score changed since last run" block entirely unless Step 2b's Reconciliation subsection ran `compare` and got `material_rescore: true`.
+Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit the "Net pay comparison" line if Step 2c's 5b sub-step didn't run (unsupported jurisdiction or no stated current salary). Omit salary flag lines if step 2c raised none. Omit the "⚠ Score changed since last run" block entirely unless Step 2b's Reconciliation subsection ran `compare` and got `material_rescore: true`.
