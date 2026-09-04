@@ -5,11 +5,15 @@ description: Import a pre-existing external job-tracking file into tracking/appl
 
 Import a pre-existing job-tracking file into the tracking log: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/import-applications` in the slash palette. In agents without slash syntax, treat this as the file path the user named in their request.)*
+
 You are bringing historical application data — from before this repo was adopted — into `tracking/applications.ndjson`. The source file can be anything: a spreadsheet, a Word document, an Apple Numbers file, a CSV, plain text, or Markdown, in any layout. Examine its actual structure yourself; do not assume a fixed column order or header set. Every row this command writes is genuinely new — it never edits or merges into an existing row (that remains `/update-status`'s job), and it never truncates or rewrites the file's existing content.
 
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/import-applications help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real file path — print the block below and stop. Do not run any other step.
 
@@ -61,7 +65,7 @@ Route based on what it reports (e.g. "Microsoft Excel 2007+" → the xlsx path, 
 
 ### Step 2b — Plain/Structured Text (csv, tsv, txt, md, pdf)
 
-Use the `Read` tool directly — the same pattern `/tailor-resume` already uses for PDFs and text job descriptions, with no shell-out needed. For CSV/TSV, don't assume a comma delimiter: read a few lines first and infer the actual delimiter from what's consistently present.
+Read the file directly — the same pattern `/tailor-resume` already uses for PDFs and text job descriptions, with no shell-out needed. For CSV/TSV, don't assume a comma delimiter: read a few lines first and infer the actual delimiter from what's consistently present.
 
 ### Step 2c — Apple Numbers (.numbers)
 
@@ -246,8 +250,8 @@ Do not proceed to Step 8 until the user confirms.
 This is the step that fixes the historical migration script's worst bug: it must never truncate or overwrite the file.
 
 1. If `tracking/applications.ndjson` doesn't exist yet, its new content is simply the newly-imported lines.
-2. If it does exist, `Read` it in full first, and construct the new file content as **the existing content, byte-for-byte, followed by the newly-imported lines** — never construct the new content from only the imported rows. This is the same Read-then-write-whole-file pattern `/update-status` Step 4 uses; the difference here is every existing line is preserved unchanged and only new lines are added at the end.
-3. Write the result with the `Write` tool.
+2. If it does exist, read it in full first, and construct the new file content as **the existing content, byte-for-byte, followed by the newly-imported lines** — never construct the new content from only the imported rows. This is the same read-then-write-whole-file pattern `/update-status` Step 4 uses; the difference here is every existing line is preserved unchanged and only new lines are added at the end.
+3. Write the result to the file.
 
 ---
 

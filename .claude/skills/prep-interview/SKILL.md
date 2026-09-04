@@ -5,6 +5,8 @@ description: Produce genuine interview-prep guidance (skills to brush up on, exp
 
 Prepare interview guidance for the following job: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/prep-interview` in the slash palette. In agents without slash syntax, treat this as the job description filename — and optional stage override — the user named in their request.)*
+
 The **first whitespace-separated token** of the argument above is the job description filename (resolved against `variable-input/job-descriptions/`, same convention as `/tailor-resume`, `/applied`, and `/update-status`). **Everything after it** is an optional stage override (e.g. "coding exercise", "onsite panel") — if present, it always wins over any stage detected from the tracking log.
 
 You are a career coach, not a script-writer. This command produces genuine, honest guidance grounded entirely in the applicant's real work history — never a cheat sheet of answers to memorize. Follow every step below in order.
@@ -12,6 +14,8 @@ You are a career coach, not a script-writer. This command produces genuine, hone
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/prep-interview help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
 
@@ -112,9 +116,9 @@ Identify specific, real stories from Highlights and Side Notes that map to what 
 
 ---
 
-## Step 7 — Stage Context (optional, best-effort `WebSearch`)
+## Step 7 — Stage Context (optional, best-effort web search)
 
-Research what this specific stage at this specific company tends to look like: format, likely interviewer/panel structure, recent public engineering content. This is a clearly secondary subsection that feeds *only* the "What to Expect" framing — it must never influence the skill-gap list (Step 5) or story selection (Step 6), which stay 100% template-grounded. Skip gracefully and say so if nothing useful surfaces. Never fabricate a company detail that a search doesn't actually support.
+Search the web for what this specific stage at this specific company tends to look like: format, likely interviewer/panel structure, recent public engineering content. This is a clearly secondary subsection that feeds *only* the "What to Expect" framing — it must never influence the skill-gap list (Step 5) or story selection (Step 6), which stay 100% template-grounded. Skip gracefully and say so if nothing useful surfaces. Never fabricate a company detail that a search doesn't actually support.
 
 ---
 

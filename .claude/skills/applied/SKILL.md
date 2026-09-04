@@ -5,11 +5,15 @@ description: Record that the applicant has applied to a job, in the tracking log
 
 Record a new job application in the tracking log for the following job description file: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/applied` in the slash palette. In agents without slash syntax, treat this as the job description filename the user named in their request.)*
+
 You are maintaining the applicant's job-application tracking log. Every application gets exactly **one row**, written once, at the time this command runs — never overwrite or merge into an existing row, even if `/applied` is run again later for the same job (ask the user to confirm if that looks like it might be happening, per Step 1).
 
 ---
 
 ## Help Check
+
+(This exact-match escape hatch is for Claude Code's `/applied help` slash syntax; other agents should just answer help questions about this skill conversationally using the Usage block below.)
 
 If `$ARGUMENTS`, trimmed of whitespace, equals `help` (case-insensitive) — and only in that exact case, not as part of a real filename — print the block below and stop. Do not run any other step.
 
@@ -66,7 +70,7 @@ This populates `salary_range` — the market/posting figure, not the recommended
 
 1. If Step 2 found a non-null `job_posting_salary_range` in the manifest, use it directly: `"<range> (<source>)"`, e.g. `"$120,000 - $150,000 CAD (posted)"`.
 2. Otherwise, check the job description text read in Step 1 for an explicit stated salary/range. If found, use it verbatim with `(posted)`.
-3. Otherwise, run a `WebSearch` for `"<company> <position_title> salary Glassdoor"` (include "Vancouver" or the job's stated location if relevant) and extract a range if a credible source surfaces. Label it `(Glassdoor)` or `(researched)` depending on the source found.
+3. Otherwise, search the web for `"<company> <position_title> salary Glassdoor"` (include "Vancouver" or the job's stated location if relevant) and extract a range if a credible source surfaces. Label it `(Glassdoor)` or `(researched)` depending on the source found.
 4. If nothing credible turns up, set `salary_range` to `null` — never fabricate a figure.
 
 ---
@@ -76,7 +80,7 @@ This populates `salary_range` — the market/posting figure, not the recommended
 This populates `glassdoor_rating` — the company's overall Glassdoor rating out of 5.0, not tied to this specific posting.
 
 1. First check `tracking/applications.ndjson` for any existing row with the same `company` (case-insensitive) that already has a non-null `glassdoor_rating`. If found, reuse that value — don't re-search for a company you've already looked up.
-2. Otherwise, run a `WebSearch` for `"<company> Glassdoor rating reviews"` and extract the overall rating (e.g. `"3.8"` from "3.8 out of 5" or "3.8/5"). Store it as a plain number string, e.g. `"3.8"`.
+2. Otherwise, search the web for `"<company> Glassdoor rating reviews"` and extract the overall rating (e.g. `"3.8"` from "3.8 out of 5" or "3.8/5"). Store it as a plain number string, e.g. `"3.8"`.
 3. If no credible rating is found, set `glassdoor_rating` to `null` — never fabricate a figure.
 
 ---

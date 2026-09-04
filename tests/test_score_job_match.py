@@ -99,6 +99,91 @@ def test_dimensions_cap_at_their_maximums(tmp_path, run_json):
     assert data["total"] == 100
 
 
+# ---- formatted_report ---------------------------------------------------
+# Deterministic formatting of the same payload fields the sub-scores are
+# computed from -- no LLM judgment involved, so this is testable the same
+# way as the arithmetic above. tailor-resume's Step 11 report is meant to
+# use this string verbatim, so it must actually be present and informative,
+# not just a placeholder.
+
+def _named_payload():
+    return _payload(
+        {
+            "required": [
+                {"skill": "Kotlin", "status": "absent"},
+                {"skill": "Swift", "status": "match", "evidence": "shipped iOS apps"},
+                {"skill": "CI/CD", "status": "partial", "evidence": "GitHub Actions, not exactly Jenkins"},
+            ],
+            "preferred": [],
+        },
+        {
+            "items": [
+                {"item": "mobile platform migration", "status": "direct", "evidence": "ported flagship app"},
+                {"item": "MVVM architecture", "status": "absent"},
+            ]
+        },
+        {
+            "title_level": {"score": 7, "note": "role wants Senior, applicant is Staff-level"},
+            "scope": {"score": 6, "note": "strong ownership evidence across two employers"},
+            "years": {"score": 4, "note": "18+ years, comfortably exceeds the 5+ years asked"},
+        },
+        {
+            "items": [
+                {"item": "AI-tooling fluency", "score": 5, "evidence": "GitHub Copilot, Claude Code"},
+                {"item": "BDD leadership", "score": 2, "evidence": "Gherkin/Cucumber across roles"},
+            ]
+        },
+    )
+
+
+def test_formatted_report_is_present_and_first_key(tmp_path, run_json):
+    path = tmp_path / "classification.json"
+    path.write_text(json.dumps(_named_payload()))
+    result, data = run_json("score_job_match.py", "score", "--input", str(path))
+    assert "formatted_report" in data
+    # Order in the printed JSON matters -- a skimming reader should see the
+    # full breakdown before the bare total, not the other way around.
+    raw_keys = list(json.loads(result.stdout).keys())
+    assert raw_keys[0] == "formatted_report"
+    assert raw_keys[1] == "total"
+
+
+def test_formatted_report_contains_specific_evidence_not_just_numbers(tmp_path, run_json):
+    data = _score(tmp_path, run_json, _named_payload())
+    report = data["formatted_report"]
+
+    # All four dimension lines present.
+    assert "Skill Overlap" in report
+    assert "Experience Relevance" in report
+    assert "Seniority Match" in report
+    assert "Transferable Skills" in report
+
+    # Specific matched/absent/direct items are named, not just counts.
+    assert "Swift" in report
+    assert "Kotlin" in report
+    assert "mobile platform migration" in report
+    assert "MVVM architecture" in report
+    assert "AI-tooling fluency" in report
+
+    # The seniority notes the LLM wrote are carried through, not discarded.
+    assert "Staff-level" in report or "Senior" in report
+
+
+def test_formatted_report_handles_empty_dimensions_without_crashing(tmp_path, run_json):
+    empty_payload = _payload(
+        {"required": [], "preferred": []},
+        {"items": []},
+        _seniority_payload(),
+        {"items": []},
+    )
+    data = _score(tmp_path, run_json, empty_payload)
+    report = data["formatted_report"]
+    assert "Skill Overlap" in report
+    assert "no skills classified" in report
+    assert "no responsibilities classified" in report
+    assert "no transferable skills classified" in report
+
+
 # ---- interpretation band boundaries ------------------------------------
 # Boundaries: 39/40, 54/55, 69/70, 84/85.
 

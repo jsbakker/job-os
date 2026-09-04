@@ -1,6 +1,6 @@
 ---
 name: load-career-profile
-description: Load the applicant's static career data (template/) and stated career direction (variable-input/career-goals/) into context. Supports three modes via args -- "full" (default): every template/ file, used by /tailor-resume, /career-coach, /find-job-descriptions; "full-with-side-notes": the same plus each experience entry's Side Notes section, used by /prep-interview; "sample": a small representative subset only, used by /match-resume-style for a style preview. Internal helper skill, not for direct end-user invocation.
+description: Load the applicant's static career data (template/) and stated career direction (variable-input/career-goals/) into context. Supports three modes via args -- full (default) reads every template/ file, used by /tailor-resume, /career-coach, /find-job-descriptions; full-with-side-notes reads the same plus each experience entry's Side Notes section, used by /prep-interview; sample reads only a small representative subset, used by /match-resume-style for a style preview. Internal helper skill, not for direct end-user invocation.
 ---
 
 Load the applicant's career profile. Mode: $ARGUMENTS (trimmed, case-insensitive; empty or unrecognized defaults to `full`).

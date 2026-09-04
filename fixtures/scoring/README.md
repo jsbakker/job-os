@@ -19,14 +19,15 @@ Each `expected.md` states *ranges*, not exact points — the itemized classifica
 1. Copy a fixture's `job-description.md` into `variable-input/job-descriptions/` (e.g. as `fixture-01-strong-match.md` — don't overwrite anything already there).
 2. Run `/tailor-resume fixture-01-strong-match.md`.
 3. Compare the reported `job_match` total, sub-scores, and interpretation label against that fixture's `expected.md`.
-4. Delete the scratch job-description copy and its `output/fixture-*` files afterward — they aren't real applications and shouldn't clutter `tracking/applications.ndjson` (don't run `/applied` against them).
+4. **Also check report fidelity, not just the numbers:** the printed report should show all four dimension lines (Skill Overlap, Experience Relevance, Seniority Match, Transferable Skills), each with a rationale that names a specific skill/item/evidence source from the fixture's job posting — not a generic sentence, and not just the total with no breakdown. This is what `AGENTS.md`'s "Report-template fidelity across agents" section and the `score-job-match`/`analyze-salary` skills exist to guarantee; a bare total or vague rationale here is a real regression, not classification variance.
+5. Delete the scratch job-description copy and its `output/fixture-*` files afterward — they aren't real applications and shouldn't clutter `tracking/applications.ndjson` (don't run `/applied` against them).
 
 **Run this from `main`, with `template/` unmodified** (still holding Dana Whitfield's example data), not from a personal branch or fork with your own resume swapped into `template/`. The `expected.md` ranges are calibrated against Dana's specific skills and experience — scoring these postings against different `template/` data will produce different, not-comparable numbers, and an out-of-range result would say nothing about rubric drift.
 
 ## When to run it
 
-- After editing Step 2b or Step 2c's wording in `.claude/commands/tailor-resume.md`.
-- After editing `scripts/score_job_match.py`'s arithmetic.
+- After editing `.claude/skills/score-job-match/SKILL.md` or `.claude/skills/analyze-salary/SKILL.md` (the job-match rubric and salary-analysis logic, formerly `tailor-resume`'s Step 2b/2c).
+- After editing `scripts/score_job_match.py`'s arithmetic or its `formatted_report` construction.
 - Periodically (every few months) as a sanity check even without an edit, since prompt behavior can drift across model versions.
 
 ## Interpreting a miss

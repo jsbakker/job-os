@@ -30,7 +30,7 @@ TARGET_FILES = [
     "tracking/learned-preferences.md",
     "tracking/.learned-preferences.hash",
 ]
-BACKUP_DIR = Path(tempfile.gettempdir()) / "resume-blueprint-test-fixtures-backup"
+BACKUP_DIR = Path(tempfile.gettempdir()) / "job-os-test-fixtures-backup"
 
 
 def cmd_backup(args) -> None:

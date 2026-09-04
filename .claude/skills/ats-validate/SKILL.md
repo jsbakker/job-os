@@ -5,6 +5,8 @@ description: Score a generated resume PDF against ATS screening criteria with a 
 
 Perform a deep ATS validation of the resume: $ARGUMENTS
 
+*(In Claude Code, `$ARGUMENTS` is what follows `/ats-validate` in the slash palette. In agents without slash syntax, treat this as the resume base name or PDF path the user named in their request.)*
+
 You are evaluating how well this resume will perform against Applicant Tracking Systems — both legacy keyword-matchers and modern LLM-based parsers. Be rigorous and honest. Over-scoring helps no one.
 
 ---
@@ -27,7 +29,7 @@ Usage: /ats-validate <base-name>  or  /ats-validate output/<base-name>.pdf
 
 ## Step 2 — Extract PDF Text
 
-Use the `Read` tool directly on the PDF path — the Read tool handles PDFs natively; do NOT use shell-based extraction (pdftotext, python subprocess, etc.).
+Read the PDF directly using native PDF extraction — do NOT use shell-based extraction (pdftotext, python subprocess, etc.).
 
 Capture the full extracted text. If the output is empty or contains only whitespace and non-readable characters, record **Parseability = 0/25** and skip to Step 6 with the note: "PDF text extraction failed — PDF may be image-based or encrypted."
 
@@ -35,7 +37,7 @@ Capture the full extracted text. If the output is empty or contains only whitesp
 
 ## Step 3 — Locate the Job Description
 
-Read the manifest file (if it exists) and find the key under `"inputs"` whose path begins with `variable-input/job-descriptions/`. That is the job description file. Read it using the `Read` tool (it may be a PDF, markdown, or text file).
+Read the manifest file (if it exists) and find the key under `"inputs"` whose path begins with `variable-input/job-descriptions/`. That is the job description file. Read it directly (it may be a PDF, markdown, or text file).
 
 If no manifest exists, or no job description key is found in the manifest, ask the user:
 ```
@@ -62,7 +64,7 @@ Start at 25.
 
 | Check | Deduct |
 |---|---|
-| `Read` tool output is empty or garbled | –25 (FAIL entire category; mark all sub-checks N/A) |
+| PDF text extraction is empty or garbled | –25 (FAIL entire category; mark all sub-checks N/A) |
 | Text reads out of order / columns appear interleaved (words from unrelated sections appear mid-line) | –8 |
 | Any section header is not a plain recognized word (e.g., "Professional Journey" instead of "Experience", "Core Competencies" instead of "Skills") | –3 per header, max –9 |
 | Non-ASCII characters appear at the start of bullet lines or within section header text (excluding bullet character • itself) | –3 |
