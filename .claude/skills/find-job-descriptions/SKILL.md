@@ -96,7 +96,7 @@ python3 scripts/find_jobs.py \
 
 If this fails because `python3` is missing, tell the user to install Python 3 (it ships with macOS by default — this would be unusual). If it fails for any other reason (network, credentials), surface the script's error message verbatim and stop.
 
-Read `output/job-search-candidates.json` — an array of candidate objects: `id`, `dedupe_key`, `title`, `company`, `location`, `redirect_url`, `created`, `snippet`, `full_text`, `full_text_fetched`, `score` (nullable — non-null means a prior run already scored it), `saved`, `date_found`.
+Read `output/job-search-candidates.json` — an array of candidate objects: `id`, `dedupe_key`, `title`, `company`, `location`, `redirect_url`, `created`, `snippet`, `full_text`, `full_text_fetched`, `score` (nullable — non-null means a prior run already scored it), `saved`, `date_found`, and — once a candidate has been scored at least once — `skill_overlap`/`experience_relevance`/`seniority_match`/`transferable_skills`/`interpretation`/`formatted_report`/`confidence` (absent/null on a candidate that predates this schema or hasn't been scored yet).
 
 ---
 
@@ -127,7 +127,7 @@ For every candidate that still needs a score (i.e., `score` is `null`), invoke t
 - The candidate's full text if `full_text_fetched` is true, or its `snippet` otherwise (flag snippet-only scores as **low-confidence** — they're based on a truncated description and are for reporting only).
 - The applicant's `template/` data and `variable-input/career-goals/` files read in Step 1.
 
-Don't pass a prior-manifest path — these candidates don't have one, so `score-job-match` won't run reconciliation. Immediately after each invocation, read `/tmp/job-match-score.json` and record that candidate's `total`, per-dimension scores, and `interpretation` before invoking `score-job-match` again for the next candidate — the scratch file is shared and gets overwritten on each invocation, so nothing from one candidate's result survives past the next invocation unless you record it first. Also record confidence (`full-text` or `snippet-only`) for each.
+Don't pass a prior-manifest path — these candidates don't have one, so `score-job-match` won't run reconciliation. Immediately after each invocation, read `/tmp/job-match-score.json` and copy `total`, `skill_overlap`, `experience_relevance`, `seniority_match`, `transferable_skills`, `interpretation`, and **`formatted_report`** — all of them, not just the numbers — verbatim onto that candidate's own object, before invoking `score-job-match` again for the next candidate. The scratch file is shared and gets overwritten on each invocation, so nothing from one candidate's result survives past the next invocation unless it's copied onto the candidate object first. Also record `confidence` (`full-text` or `snippet-only`) for each. These fields travel with the candidate object into Step 8's ledger write and Step 9's report — Step 9 must not reconstruct a candidate's rationale from memory when `formatted_report` is sitting right there on the object.
 
 **The rubric and its point math stay exactly as defined in tailor-resume.md — do not adjust scores based on learned preferences.** This keeps `/find-job-descriptions` scores directly comparable to `/tailor-resume`'s. Separately, using `tracking/learned-preferences.md` as grounding evidence, attach a **preference-fit label** to every candidate as its own field, never blended into the score:
 - `Matches your pattern` — aligns with one or more Confirmed Patterns from the profile.
@@ -136,7 +136,7 @@ Don't pass a prior-manifest path — these candidates don't have one, so `score-
 
 This label is a display/grouping aid for Step 9, not a scoring input.
 
-Candidates with a cached (already non-null) `score` are not re-scored — reuse the cached value and confidence, but still compute the preference-fit label fresh each run (the learned-preferences profile can change between runs even when the score doesn't).
+Candidates with a cached (already non-null) `score` are not re-scored — reuse the cached `total`/sub-scores/`interpretation`/`formatted_report`/`confidence` directly from the candidate object (carried forward by `find_jobs.py` from the ledger), but still compute the preference-fit label fresh each run (the learned-preferences profile can change between runs even when the score doesn't). A candidate cached from before this schema existed may have a `score` but no `formatted_report` — if so, treat it as needing a rescore for the report-fidelity fields specifically: re-invoke `score-job-match` for it despite the cached `score`, so Step 9 always has a real `formatted_report` to draw from rather than an unexplained gap.
 
 ---
 
@@ -163,7 +163,7 @@ For each candidate where `full_text_fetched` is true (this run or cached) **and*
 
 ## Step 8 — Update Ledger
 
-Write `output/job-search-seen.json` (same shape the script wrote in Step 3) back with every evaluated candidate's final `score`, `saved`, and `full_text_fetched` values, so future runs reconcile against a threshold instead of re-fetching or re-scoring.
+Write `output/job-search-seen.json` (same shape the script wrote in Step 3) back with every evaluated candidate's final `score`, `saved`, `full_text_fetched`, `skill_overlap`, `experience_relevance`, `seniority_match`, `transferable_skills`, `interpretation`, `formatted_report`, and `confidence` values, so future runs reconcile against a threshold instead of re-fetching or re-scoring — and so a future run's Step 9 can report a real rationale for a cached candidate instead of having nothing to draw from.
 
 ---
 
@@ -185,7 +185,7 @@ Rank  Title @ Company                          Location        Score       Patte
 1     Staff Software Engineer @ Acme Corp       Vancouver, BC   88/100      Matches your pattern       Saved → variable-input/job-descriptions/Acme-Corp-Staff-Software-Engineer.md
 2     ...
 
-[repeat rationale per entry, one line each: why it scored where it did, tying to skills/career goals]
+[repeat rationale per entry, one line each: drawn from that candidate's own `formatted_report` field on the candidate object — name the single most decisive matched or absent item it mentions, not a generic restatement of the score. Do not invent or recall a rationale from memory; if a candidate object somehow has no `formatted_report` at this point, say so explicitly rather than fabricating one.]
 
 Outside your typical pattern (<N>):
 
