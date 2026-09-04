@@ -1,5 +1,5 @@
 # Setting Up OpenAI Codex CLI
-**Note:** Tested, but output not as good as Claude. This wrote a Swift program just to read/write PDF, while the SKILL.md file already says how to handle PDFs. The tailored resume + cover-letter had a higher job match (total only) than Claude Code, but recommended salary ask was a lower pay. The formatting was respected fully.
+**Note:** Tested, but output not as good as Claude. This wrote a Swift program just to read/write PDF, while the SKILL.md file already says how to handle PDFs. The tailored resume + cover-letter had a higher job match (total only) than Claude Code, but recommended salary ask was a lower pay. The formatting was respected fully. The "total only" symptom is diagnosed and addressed in `AGENTS.md`'s "Report-template fidelity across agents" section — re-test after that change lands to see if sub-scores now come through.
 
 ## 1. Install
 

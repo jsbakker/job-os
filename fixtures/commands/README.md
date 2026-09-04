@@ -19,6 +19,7 @@ Same rule as `fixtures/scoring/`: these fixtures are calibrated against Dana Whi
 ## When to run it
 
 - After editing any of the five scripts named above, or the `.claude/skills/*/SKILL.md` steps that invoke them.
+- After editing the `score-job-match`/`analyze-salary` skills' persist-to-scratch-file logic, or `tailor-resume`'s Step 9/11 read-back of those files — the `tailor-resume/` fixture's manifest and report-fidelity checks exercise that wiring specifically.
 - Periodically as a sanity check, same as `fixtures/scoring/`.
 
 ## Cleanup

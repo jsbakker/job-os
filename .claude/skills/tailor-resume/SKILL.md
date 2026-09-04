@@ -76,7 +76,7 @@ ls output/<base-name>-cover-letter.md output/<base-name>-cover-letter.pdf 2>/dev
   ```
 - If `all_match` is `true` **but** cover letter files are missing — skip to Step 8b to generate the cover letter only, then update the manifest and report.
 
-If `all_match` is `false` (or the manifest is absent), note whether the existing manifest (if any) has a `job_match` block, and its path (`output/<base-name>.manifest`) — Step 2b's Reconciliation subsection will need it later, even when the reason a rerun was triggered is unrelated to scoring (e.g. only `blueprint.md` changed). Then continue to Step 1.
+If `all_match` is `false` (or the manifest is absent), note whether the existing manifest (if any) has a `job_match` block, and its path (`output/<base-name>.manifest`) — Step 2b will need to pass this path to the `score-job-match` skill for reconciliation, even when the reason a rerun was triggered is unrelated to scoring (e.g. only `blueprint.md` changed). Then continue to Step 1.
 
 ---
 
@@ -121,138 +121,17 @@ Using the job description and career goals as filters:
 
 ## Step 2b — Job Match Analysis
 
-Score the applicant's fit for this role across four dimensions. Be honest — over-scoring a weak match wastes the applicant's time; under-scoring a strong one undersells them.
+Invoke the `score-job-match` skill, passing it: the job description text (Step 1), the loaded career profile (Step 1), and — if Step 0 found an existing manifest with a prior `job_match` block — that manifest's path, so `score-job-match` can run reconciliation against it.
 
-**Do not compute or estimate a dimension score yourself.** Your job is the itemized classification below — build it, write it to a temp JSON file (e.g. `/tmp/job-match-input.json`), then run:
-
-```bash
-python3 scripts/score_job_match.py score --input /tmp/job-match-input.json
-```
-
-That command returns the actual `total`, all four sub-scores, and the `interpretation` label — use its output verbatim. If a result looks wrong given the list you built, the itemization was wrong (a bad classification, or too many/few items extracted) — fix the classification and re-run the script. Never override its output by hand.
-
-Build this JSON payload:
-
-```json
-{
-  "skill_overlap": {
-    "required": [{"skill": "<from JD>", "status": "match|partial|absent", "evidence": "<citation to all-skills.md or an experience bullet, or omit if absent>"}],
-    "preferred": [{"skill": "<from JD>", "status": "match|partial|absent", "evidence": "..."}]
-  },
-  "experience_relevance": {
-    "items": [{"item": "<a specific JD responsibility/domain/stack element>", "status": "direct|adjacent|absent", "evidence": "<citation to a specific template/experience/*.md entry>"}]
-  },
-  "seniority_match": {
-    "title_level": {"score": <0-8>, "note": "<role's expected level vs. applicant's title history>"},
-    "scope": {"score": <0-8>, "note": "<ownership/cross-team impact/mentorship evidence>"},
-    "years": {"score": <0-4>, "note": "<years of relevant experience vs. what the role expects>"}
-  },
-  "transferable_skills": {
-    "items": [{"item": "<adjacent tech, domain knowledge, process leadership, unique differentiator>", "score": <0-5>, "evidence": "<citation>"}]
-  }
-}
-```
-
-Guidance for building each section (the judgment work — this is what you're actually doing):
-
-### Skill Overlap
-- List **every** required skill/qualification from the job posting as its own `required` item, and every preferred/bonus skill as its own `preferred` item. Check each against `template/all-skills.md` and the experience entries.
-- `match` = clearly demonstrated. `partial` = a credible near-match (e.g. "XCTest" when the applicant has "Selenium" and iOS experience) — cite why it's a reasonable partial credit, not a stretch. `absent` = no evidence.
-- If the JD states no preferred/bonus skills at all, leave `preferred` as an empty list — the script awards full credit for that case.
-
-### Experience Relevance
-- Extract 4–8 specific responsibility/domain/stack items from the JD (not every bullet — the load-bearing ones). For each, classify how directly the applicant's work history maps to it: `direct` (same domain and stack, recent), `adjacent` (transferable but not a clean match), `absent` (no real evidence). Cite the specific `template/experience/*.md` entry backing each `direct` or `adjacent` call.
-
-### Seniority Match
-- `title_level` (0–8): how the role's expected level (IC, Senior, Staff, Principal, etc.) compares to the applicant's title history. `scope` (0–8): ownership, cross-team impact, mentorship evidence from the experience entries. `years` (0–4): years of relevant experience vs. what the role expects. Note the reasoning for each — these notes are what make a future rescore auditable.
-
-### Transferable Skills
-- Identify up to 5 items that aren't a direct requirement match but meaningfully strengthen the application — adjacent technologies, domain knowledge, process leadership, or a differentiator addressing an unstated need. Score each 0–5 based on strength/specificity; cite the evidence.
-
-### Interpretation
-
-Use the `interpretation` label from `scripts/score_job_match.py score`'s output verbatim — it's derived from `INTERPRETATION_BANDS`, the single source of truth for the band boundaries. Do not restate or eyeball the bands here, especially near a boundary.
-
-### Reconciliation
-
-If Step 0 noted an existing manifest with a prior `job_match` block, run:
-
-```bash
-python3 scripts/score_job_match.py compare --new <path-to-this-run's-score-output.json> --prior output/<base-name>.manifest
-```
-
-(Save this run's `score` output to a file first if you haven't already, so `--new` can point at it.)
-
-If the result's `material_rescore` is `true` (total moved 8+ points, or the interpretation label changed):
-1. Show the script's before/after table (`report_text`) to the user in Step 11 (see that step's report block).
-2. For each dimension listed in `dimensions_needing_explanation` (moved 3+ points), state a specific one-line reason: either a genuine input change (cite the changed file/content), or — if the inputs are unchanged — an honest note naming which checklist item(s) were classified differently this time versus what the prior manifest's `job_match.checklist` recorded (if present).
-
-If `material_rescore` is `false`, no reconciliation note is needed in Step 11 — proceed normally. If Step 0 found no prior manifest, skip this subsection entirely.
+It writes the full scored result to `/tmp/job-match-score.json`. If it ran reconciliation, note whether `material_rescore` came back `true` (and, if so, keep its `dimensions_needing_explanation`/`report_text` on hand) — Step 9 and Step 11 need this later, but **read `/tmp/job-match-score.json` fresh at those steps rather than recalling its contents from here.**
 
 ---
 
 ## Step 2c — Asking Salary Analysis
 
-This step produces a report-only recommendation — it does not appear on the resume or cover letter. Never fabricate a precise, unsourced number; every figure must trace back to either the job posting, a cited web search, or the applicant's own stated expectations.
+Invoke the `analyze-salary` skill, passing it: the job description text (Step 1), the loaded career profile (Step 1), `variable-input/salary-expectations.md`'s contents if present (also Step 1), and the `total`/`transferable_skills` values from `/tmp/job-match-score.json` (just written in Step 2b).
 
-1. **Determine the reporting currency.** Never assume USD or any other currency by default — derive it:
-   - If `variable-input/salary-expectations.md` has a `Currency` field, that's the applicant's currency for all figures the applicant side of this analysis.
-   - Otherwise, infer the applicant's local currency from their location (`contact-info.txt`'s location if stated, otherwise infer from the job posting's stated location/remote policy and flag the assumption).
-   - Use the job posting's own stated currency for the job's compensation anchor when it states one explicitly (look for an explicit code like USD/CAD/EUR, or contextual clues — company HQ, job location, "USD"/"CAD" in the text — since a bare "$" is ambiguous).
-   - Every dollar figure recorded in this step and reported in Step 11 must carry an explicit currency code (e.g., "$130,000 CAD"), never a bare "$".
-   - If the job's anchor currency differs from the applicant's local currency, flag it (see step 5) rather than silently converting — do not fabricate an exchange-rate conversion.
-
-2. **Read the applicant's floor, if provided.** If `variable-input/salary-expectations.md` exists, note the current salary, minimum acceptable, and/or target range (in the currency from step 1). This is a hard floor: the suggested range's low end must never be recommended below the applicant's stated minimum. If the file doesn't exist, there is no floor to enforce — proceed on computed value alone.
-
-3. **Establish the applicant's general market worth.** Independent of this specific job posting, determine what a candidate with this applicant's title, years of experience, seniority (reuse the Seniority Match reasoning from Step 2b), and core skills typically commands. Search the web to find current data (prefer sources like levels.fyi, Glassdoor, Payscale, Bureau of Labor Statistics, or recent salary-survey aggregators; prefer results from the last ~2 years) for the applicant's location. Record this as the applicant's market-worth range, labeled with its currency code, with a cited source.
-
-4. **Establish the job's compensation anchor.**
-   - If the job posting states a salary or range explicitly, use it verbatim (currency and all) as the primary anchor — this is always preferred over research.
-   - Otherwise, first check whether this is a **contract/hourly engagement** — language like "contract", "hourly rate", "day rate", "1099", "corp-to-corp"/"C2C", or "on incorporation", or the absence of any salaried-employment framing. If so:
-     - Do **not** anchor on generic salary-aggregator "hourly rate" or "contractor salary" listings. Those sites report realized/averaged contractor *income*, not billing *rates* — dividing a typical FTE salary survey by working hours (or reading a site's "contract consultant salary") systematically understates what a contractor needs to charge, because it doesn't price in self-employment tax, self-funded benefits, lost PTO, or gaps between contracts.
-     - Instead, ground the anchor in the applicant's own comp data via the standard contractor markup convention (contract billing rate ≈ 1.5x-2x the equivalent FTE hourly rate):
-       ```bash
-       python3 scripts/score_job_match.py contract-rate --annual-salary <current salary from salary-expectations.md, or the market-worth midpoint from step 3 if unavailable>
-       ```
-       Use its `floor_hourly`/`stretch_hourly` (and the `*_annualized_equivalent` fields) as the anchor low/high. Still do one corroborating web search for actual contractor/consultant *billing* rates (not converted-salary figures) in the applicant's field and location — cite it if it materially agrees or disagrees — but the multiplier-derived figures take precedence as the anchor unless the corroborating research is clearly stronger (e.g. a staffing agency's published rate card for this exact role type).
-   - For a salaried (non-contract) role with no posted range, search the web for a market range for this specific title/level/location/company, using the same sourcing standard as step 3, in the currency established in step 1. Label this anchor as "researched" (not "posted") in the report so the applicant knows it isn't from the employer.
-
-5. **Position the ask within the anchor range.** Do not hand-pick a percentage yourself — run:
-   ```bash
-   python3 scripts/score_job_match.py salary-position --anchor-low <low> --anchor-high <high> \
-     --total-score <Step 2b total> --transferable-score <Step 2b Transferable Skills sub-score> \
-     [--market-worth-high <applicant's market-worth range high, if step 3 found one>]
-   ```
-   This applies the same fixed bands the old prose described (85–100 → top of range, or up to 10% above it if market-worth-high exceeds the anchor high and transferable-score is strong; 70–84 → upper-middle; 55–69 → middle; under 55 → lower-middle to low end) — use its `suggested_low`/`suggested_high` output verbatim.
-   - Do not inflate the number to force it up to the applicant's market worth if the job's anchor range is simply lower across the board — surface that as a flag instead (next step), don't mask it.
-   - If a floor from `salary-expectations.md` exists and the script's `suggested_low` falls below it, use the floor as the suggested low end instead and flag the conflict.
-   - If the job anchor and the applicant's market-worth figure ended up in different currencies (step 1 flagged a mismatch), position within the job anchor's own currency and range — don't pass a market-worth-high from a different currency into the script.
-   - For a contract role anchored via `contract-rate` above, also convert `suggested_low`/`suggested_high` back to an hourly figure (divide by the same `annual_hours_basis`) since that's the unit the applicant will actually quote.
-
-5b. **Net-pay sanity check.** A raise can look bigger on paper than it is in the bank, especially moving from salaried employment to a contract (higher marginal tax bracket eating more of each incremental dollar, plus — for a contract specifically — losing employer-paid benefits/PTO and paying both CPP portions instead of half). Compare current vs. proposed take-home so the applicant sees the real delta:
-   - First construct a jurisdiction code from the applicant's location (from `contact-info.txt`, or `salary-expectations.md`'s `Location`/`Currency` fields): `<ISO-3166 country code>-<province/state abbreviation>`, e.g. `CA-BC` for British Columbia, Canada or `CA-ON` for Ontario, Canada.
-   - Check whether that code is in the script's supported set — run `python3 scripts/score_job_match.py net-pay --help` and look at the `--jurisdiction` choices, or read `JURISDICTIONS` in `scripts/score_job_match.py` directly. Only a small, explicitly-dated set of jurisdictions is supported at any given time.
-   - If the applicant's jurisdiction isn't supported, skip this sub-step entirely and note in Step 11 that a net-pay comparison isn't available for the applicant's jurisdiction — never fabricate a bracket table for an unsupported location. (Adding a new jurisdiction is a one-time data-entry task in the script, sourced from that jurisdiction's own tax authority — not something to improvise per-run.)
-   - If `salary-expectations.md` has no stated current salary, skip this sub-step — there is nothing to compare against.
-   - Otherwise run:
-     ```bash
-     python3 scripts/score_job_match.py net-pay-compare \
-       --current-gross <current salary from salary-expectations.md> --current-employment-type employee \
-       --proposed-gross <the suggested range's midpoint, annualized> --proposed-employment-type <employee for a salaried role, self-employed for a contract> \
-       --jurisdiction <the jurisdiction code from above>
-     ```
-   - Report the `net_delta` and `share_of_raise_kept` (not just the gross delta), plus the `average_tax_rate` before and after, so the applicant sees how much of the raise actually survives taxes and (for a contract) the CPP/benefit shift.
-   - **Do not claim that moving into a higher tax bracket reduces net pay.** Canada's federal and provincial brackets are marginal — more gross income never produces less net income tax domestically (ignoring benefit-clawback edge cases like OAS, which don't apply here). What's real and worth surfacing plainly: the marginal rate on the *incremental* dollars is higher, so a smaller fraction of the raise is kept than the headline number suggests, and moving to contract status specifically adds the CPP/benefit/PTO costs already priced into step 4's multiplier. If the script's `net_decreased` field ever comes back `true`, that means a bad input (e.g. a swapped current/proposed value), not a real tax outcome — check the inputs rather than reporting it as a finding.
-
-6. **Flag mismatches explicitly — do not smooth them over:**
-   - ⚠ **Pay cut risk:** the job's anchor range sits meaningfully (~10%+) below the applicant's market-worth range (only compare when both are in the same currency, or note that a currency difference makes the comparison approximate). State it plainly, especially if paired with a borderline Step 2b score.
-   - ⚠ **Below stated floor:** the job's anchor range can't support the minimum in `salary-expectations.md`.
-   - ⚠ **No salary data found:** neither the posting nor web search produced usable compensation data (ambiguous location, obscure title, etc.) — say so rather than inventing a number, and omit the suggested range from Step 11.
-   - ⚠ **Location assumed:** the applicant's location wasn't stated in `contact-info.txt` and had to be inferred.
-   - ⚠ **Currency mismatch:** the job's anchor currency differs from the applicant's local currency — note both currencies explicitly and that the comparison is approximate absent a real conversion.
-   - ⚠ **Net-pay comparison unavailable:** the applicant's jurisdiction isn't in the script's supported tax-bracket set — Step 11 reports gross figures only.
-
-7. Record: the suggested asking range (with currency code, and an hourly figure too for a contract role), the anchor source (posted / researched / contractor-multiplier, with citation), the applicant's market-worth range (with currency code and citation), the positioning rationale, the net-pay comparison (if run), and any flags. These are reported in Step 11 — do not write them into the resume or cover letter.
+It writes the full result to `/tmp/salary-analysis.json`. **Read that file fresh at Step 9 and Step 11 rather than recalling its contents from here** — this step produces a report-only recommendation (it does not appear on the resume or cover letter), and nothing about it should be reconstructed from memory several steps later.
 
 ---
 
@@ -428,7 +307,11 @@ Hash every input file:
 python3 scripts/manifest_check.py hash --job-description "$ARGUMENTS"
 ```
 
-Use its JSON output verbatim as the `"inputs"` field below. Write the result as JSON to `output/<base-name>.manifest`:
+Use its JSON output verbatim as the `"inputs"` field below.
+
+For `job_match` and the two salary fields, **do not retype or reconstruct any value from memory.** Read `/tmp/job-match-score.json` (written in Step 2b) and copy its `total`/`skill_overlap`/`experience_relevance`/`seniority_match`/`transferable_skills`/`interpretation`/`checklist` fields verbatim into `job_match` below (its shape already matches this schema exactly — this is a straight copy, not a transform). Read `/tmp/salary-analysis.json` (written in Step 2c) and copy its `suggested_asking_salary` and `job_posting_salary_range` fields verbatim.
+
+Write the result as JSON to `output/<base-name>.manifest`:
 ```json
 {
   "generated": "<YYYY-MM-DD>",
@@ -438,19 +321,11 @@ Use its JSON output verbatim as the `"inputs"` field below. Write the result as 
     "cover_letter_markdown": "output/<base-name>-cover-letter.md",
     "cover_letter_pdf": "output/<base-name>-cover-letter.pdf"
   },
-  "job_match": {
-    "total": <Step 2b total score, integer, from score_job_match.py's output>,
-    "skill_overlap": <Step 2b Skill Overlap score>,
-    "experience_relevance": <Step 2b Experience Relevance score>,
-    "seniority_match": <Step 2b Seniority Match score>,
-    "transferable_skills": <Step 2b Transferable Skills score>,
-    "interpretation": "<Step 2b interpretation label, e.g. 'Strong match'>",
-    "checklist": <the "checklist" object echoed back by `score_job_match.py score` — the full itemized classification (skill_overlap/experience_relevance/seniority_match/transferable_skills sub-objects with every item's status and citation), carried verbatim so a future rescore's Reconciliation subsection can diff against exactly what was classified this run>
-  },
-  "suggested_asking_salary": "<Step 2c suggested asking range with currency code, e.g. '$130,000 - $145,000 CAD', or null if Step 2c found no usable data>",
+  "job_match": <copied verbatim from /tmp/job-match-score.json — total/skill_overlap/experience_relevance/seniority_match/transferable_skills/interpretation/checklist, plus formatted_report>,
+  "suggested_asking_salary": "<copied verbatim from /tmp/salary-analysis.json, e.g. '$130,000 - $145,000 CAD', or null if that file found no usable data>",
   "job_posting_salary_range": {
-    "range": "<Step 2c's compensation anchor from its step 4, e.g. '$120,000 - $150,000 CAD', or null>",
-    "source": "<'posted' if the job listing itself stated it, 'researched' if Step 2c had to look it up, or null>"
+    "range": "<copied verbatim from /tmp/salary-analysis.json, e.g. '$120,000 - $150,000 CAD', or null>",
+    "source": "<copied verbatim: 'posted' | 'researched' | 'contractor-multiplier', or null>"
   },
   "inputs": {
     "<file-path>": "<sha256>",
@@ -463,6 +338,8 @@ The `job_match`, `suggested_asking_salary`, and `job_posting_salary_range` field
 ---
 
 ## Step 11 — Report Output
+
+Before writing anything below, read `output/<base-name>.manifest` (just written in Step 9) and `/tmp/salary-analysis.json` (written in Step 2c). **Every value in the score and salary blocks below comes from those two files, verbatim — none of it is reconstructed from memory of Step 2b/2c.**
 
 When all validations pass, report:
 
@@ -481,13 +358,10 @@ Validation summary:
   ✓ Cover letter PDF page count: 1 page(s)
   ✓ ATS checks passed[, <N> warning(s) — see below]
 
-Job match score: <total>/100 — <interpretation label>
+Job match score: <manifest job_match.total>/100 — <manifest job_match.interpretation>
 
-  Skill Overlap      : <score>/30 — <one-line rationale>
-  Experience Relevance: <score>/30 — <one-line rationale>
-  Seniority Match    : <score>/20 — <one-line rationale>
-  Transferable Skills: <score>/20 — <one-line rationale>
-[If Step 2b's Reconciliation subsection found a prior manifest and ran `compare`, AND `material_rescore` was true:]
+<manifest job_match.formatted_report, verbatim — already the four "Skill Overlap"/"Experience Relevance"/"Seniority Match"/"Transferable Skills" lines with rationale, do not rewrite or re-summarize it>
+[If Step 2b's `score-job-match` invocation ran reconciliation, AND `material_rescore` was true:]
 
 <the script's report_text verbatim, e.g.:>
 ⚠ Score changed since last run (was <prior total>/100 "<prior label>", now <new total>/100 "<new label>"):
@@ -500,17 +374,17 @@ Keywords matched from job description: <list the matched keywords>
 Experience entries included: <list the roles included>
 Experience entries excluded: <list any roles omitted and why>
 
-Suggested asking salary: <range with currency code from Step 2c, e.g. "$130,000 - $145,000 CAD"> [or: "Not enough data to suggest a range — see flags below" if step 2c found no usable data]
-  Anchor        : <"Posted range: $X - $Y <currency>" or "Researched range for <title/level/location>: $X - $Y <currency> (source: <cite>)">
-  Market worth  : <applicant's general market-worth range, with currency code> (source: <cite>)
-  Rationale     : <one line tying the position within the range to the fit score and transferable skills>
+Suggested asking salary: <manifest suggested_asking_salary, verbatim> [or: "Not enough data to suggest a range — see flags below" if that field is null]
+  Anchor        : </tmp/salary-analysis.json's anchor_citation, verbatim>
+  Market worth  : <market_worth> (source: <market_worth_citation>) — both from /tmp/salary-analysis.json, verbatim
+  Rationale     : <rationale from /tmp/salary-analysis.json, verbatim>
 [If salary-expectations.md was found:]
-  Applicant floor respected: <minimum from variable-input/salary-expectations.md>
-[If Step 2c's 5b net-pay sanity check ran:]
-  Net pay comparison (<jurisdiction label>): current $<current net> net vs. proposed $<proposed net> net (<share_of_raise_kept as a percent> of the raise kept after tax/CPP/EI)
-[If any salary flags exist:]
-  ⚠ <salary flag 1>
-  ⚠ <salary flag 2>
+  Applicant floor respected: <applicant_floor_respected from /tmp/salary-analysis.json>
+[If /tmp/salary-analysis.json has a net_pay_comparison object:]
+  Net pay comparison (<jurisdiction_label>): current $<current_net> net vs. proposed $<proposed_net> net (<share_of_raise_kept as a percent> of the raise kept after tax/CPP/EI)
+[If /tmp/salary-analysis.json's flags list is non-empty:]
+  ⚠ <flag 1>
+  ⚠ <flag 2>
   ...
 [If any ATS warnings exist:]
 
@@ -520,4 +394,4 @@ ATS warnings (<N>):
   ...
 ```
 
-Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit the "Net pay comparison" line if Step 2c's 5b sub-step didn't run (unsupported jurisdiction or no stated current salary). Omit salary flag lines if step 2c raised none. Omit the "⚠ Score changed since last run" block entirely unless Step 2b's Reconciliation subsection ran `compare` and got `material_rescore: true`.
+Omit the "ATS warnings" block entirely if there are no warnings. Replace ", <N> warning(s) — see below" in the validation summary with nothing if there are no warnings. Omit the "Applicant floor respected" line if no `salary-expectations.md` was found. Omit the "Net pay comparison" line if `/tmp/salary-analysis.json` has no `net_pay_comparison` object. Omit salary flag lines if `/tmp/salary-analysis.json`'s `flags` list is empty. Omit the "⚠ Score changed since last run" block entirely unless Step 2b's `score-job-match` invocation ran reconciliation and got `material_rescore: true`.

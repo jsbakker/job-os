@@ -123,11 +123,11 @@ Candidates with `score` already non-null (reused from the ledger by the script) 
 
 ## Step 6 — Score
 
-For every candidate that still needs a score (i.e., `score` is `null`), read `.claude/skills/tailor-resume/SKILL.md`'s **"Step 2b — Job Match Analysis"** section and apply that exact rubric — Skill Overlap (0-30), Experience Relevance (0-30), Seniority Match (0-20), Transferable Skills (0-20) — against:
+For every candidate that still needs a score (i.e., `score` is `null`), invoke the `score-job-match` skill (the same rubric `/tailor-resume` uses — Skill Overlap 0-30, Experience Relevance 0-30, Seniority Match 0-20, Transferable Skills 0-20) against:
 - The candidate's full text if `full_text_fetched` is true, or its `snippet` otherwise (flag snippet-only scores as **low-confidence** — they're based on a truncated description and are for reporting only).
 - The applicant's `template/` data and `variable-input/career-goals/` files read in Step 1.
 
-Record: total score, per-dimension scores, interpretation label (reuse tailor-resume's bands), and confidence (`full-text` or `snippet-only`).
+Don't pass a prior-manifest path — these candidates don't have one, so `score-job-match` won't run reconciliation. Immediately after each invocation, read `/tmp/job-match-score.json` and record that candidate's `total`, per-dimension scores, and `interpretation` before invoking `score-job-match` again for the next candidate — the scratch file is shared and gets overwritten on each invocation, so nothing from one candidate's result survives past the next invocation unless you record it first. Also record confidence (`full-text` or `snippet-only`) for each.
 
 **The rubric and its point math stay exactly as defined in tailor-resume.md — do not adjust scores based on learned preferences.** This keeps `/find-job-descriptions` scores directly comparable to `/tailor-resume`'s. Separately, using `tracking/learned-preferences.md` as grounding evidence, attach a **preference-fit label** to every candidate as its own field, never blended into the score:
 - `Matches your pattern` — aligns with one or more Confirmed Patterns from the profile.

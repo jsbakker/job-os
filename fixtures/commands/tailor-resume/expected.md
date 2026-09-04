@@ -12,8 +12,9 @@
 ## Expected — first run
 
 - **Base name:** `dana-whitfield-fixture-01-strong-match`, derived from `template/contact-info.txt`'s `name: Dana Whitfield` and the copied filename's stem — this is `scripts/base_name.py applicant-job`'s job, exercised for real here rather than in isolation.
-- **Manifest:** `output/dana-whitfield-fixture-01-strong-match.manifest` is created, with an `"inputs"` block whose keys match `scripts/manifest_check.py hash`'s fixed file list (verifiable by running that script directly against the same job-description filename and diffing key sets).
-- **Job match:** total in the 72–88 range, interpretation "Strong match" or "Exceptional match" — per `fixtures/scoring/fixture-01-strong-match/expected.md`'s calibration. This run's Reconciliation subsection should report no prior manifest found (first run) and skip that subsection entirely.
+- **Manifest:** `output/dana-whitfield-fixture-01-strong-match.manifest` is created, with an `"inputs"` block whose keys match `scripts/manifest_check.py hash`'s fixed file list (verifiable by running that script directly against the same job-description filename and diffing key sets). Its `job_match` block should include a `formatted_report` field (copied verbatim from `/tmp/job-match-score.json`, written by the `score-job-match` skill) — its absence means Step 9 fell back to reconstructing `job_match` from memory instead of reading that file, which is exactly the regression this fixture (and `AGENTS.md`'s "Report-template fidelity across agents" section) exists to catch.
+- **Job match:** total in the 72–88 range, interpretation "Strong match" or "Exceptional match" — per `fixtures/scoring/fixture-01-strong-match/expected.md`'s calibration. This run should report no prior manifest found (first run) and skip reconciliation entirely.
+- **Report fidelity:** the printed Step 11 report's four dimension lines should be byte-identical to the manifest's `job_match.formatted_report` — not a paraphrase, not just a total with no breakdown.
 - **Output:** a 2-page resume PDF and a 1-page cover letter PDF, both passing ATS checks.
 
 ## Expected — second run (the actual point of this fixture)

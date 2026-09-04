@@ -1,5 +1,5 @@
 # Setting Up GitHub Copilot CLI
-**Note:** Tested, generated tailored resume + cover-letter with expected style and formatting. However, it only have a total match score, no recommended salary asking range, and excluded experience with no explanation.
+**Note:** Tested, generated tailored resume + cover-letter with expected style and formatting. However, it only have a total match score, no recommended salary asking range, and excluded experience with no explanation. Both the missing sub-scores and the missing salary range are diagnosed and addressed in `AGENTS.md`'s "Report-template fidelity across agents" section — re-test after that change lands. The excluded-experience-without-explanation symptom is a related but distinct gap (Step 2's selection reasoning isn't persisted either) and is not fixed by that change.
 
 ## 1. Install
 

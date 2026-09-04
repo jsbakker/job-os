@@ -1,5 +1,5 @@
 # Setting Up Google Gemini CLI
-**Note:** Tested, but ran out of usage limit on gemini-3.5-flash model with a free account. Changed model to gemini-3.1-flash-lite to complete the resume tailoring. Was able to tailor the resume + cover-letter, give detailed match score, and asking salary recommendation. Did not respect all of the formatting or font, left out some experience with no explanation, and resume was one page. Low quality could be due to dropping down to an even lower free model halfway through.
+**Note:** Tested, but ran out of usage limit on gemini-3.5-flash model with a free account. Changed model to gemini-3.1-flash-lite to complete the resume tailoring. Was able to tailor the resume + cover-letter, give detailed match score, and asking salary recommendation. Did not respect all of the formatting or font, left out some experience with no explanation, and resume was one page. Low quality could be due to dropping down to an even lower free model halfway through. Separately from the model-downgrade confound, `AGENTS.md`'s "Report-template fidelity across agents" section diagnoses and addresses a real, model-independent cause of vague/generic sub-score rationale on Gemini CLI specifically — worth re-testing on a consistent model after that change to isolate which issue was which.
 
 ## 1. Install
 

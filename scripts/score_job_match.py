@@ -163,6 +163,85 @@ def interpretation_for(total: int) -> str:
     return "Reach application"
 
 
+def _truncate_list(names, limit):
+    names = [n for n in names if n]
+    if not names:
+        return ""
+    if len(names) <= limit:
+        return ", ".join(names)
+    return f"{', '.join(names[:limit])} (+{len(names) - limit} more)"
+
+
+def _truncate_text(text, max_words):
+    if not text:
+        return ""
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    return " ".join(words[:max_words]) + "..."
+
+
+def _skill_overlap_rationale(data: dict) -> str:
+    items = data.get("required", []) + data.get("preferred", [])
+    matched = [i.get("skill", "") for i in items if i.get("status") == "match"]
+    partial = [i.get("skill", "") for i in items if i.get("status") == "partial"]
+    absent = [i.get("skill", "") for i in items if i.get("status") == "absent"]
+    parts = []
+    if matched:
+        parts.append(f"matches {_truncate_list(matched, 4)}")
+    if partial:
+        parts.append(f"partial on {_truncate_list(partial, 2)}")
+    if absent:
+        parts.append(f"gap on {_truncate_list(absent, 3)}")
+    return "; ".join(parts) if parts else "no skills classified"
+
+
+def _experience_relevance_rationale(data: dict) -> str:
+    items = data.get("items", [])
+    direct = [i.get("item", "") for i in items if i.get("status") == "direct"]
+    adjacent = [i.get("item", "") for i in items if i.get("status") == "adjacent"]
+    absent = [i.get("item", "") for i in items if i.get("status") == "absent"]
+    parts = []
+    if direct:
+        parts.append(f"direct hit on {_truncate_list(direct, 3)}")
+    if adjacent:
+        parts.append(f"adjacent on {_truncate_list(adjacent, 2)}")
+    if absent:
+        parts.append(f"absent: {_truncate_list(absent, 2)}")
+    return "; ".join(parts) if parts else "no responsibilities classified"
+
+
+def _seniority_match_rationale(data: dict) -> str:
+    notes = [
+        _truncate_text(data.get("title_level", {}).get("note", ""), 14),
+        _truncate_text(data.get("scope", {}).get("note", ""), 14),
+        _truncate_text(data.get("years", {}).get("note", ""), 12),
+    ]
+    notes = [n for n in notes if n]
+    return "; ".join(notes) if notes else "no seniority notes provided"
+
+
+def _transferable_skills_rationale(data: dict) -> str:
+    items = sorted(data.get("items", []), key=lambda i: i.get("score", 0), reverse=True)
+    top = [f"{i.get('item', '?')} ({i.get('score', 0)})" for i in items[:3] if i.get("item")]
+    return f"top differentiators: {', '.join(top)}" if top else "no transferable skills classified"
+
+
+def _build_formatted_report(payload: dict, skill_overlap: int, experience_relevance: int,
+                             seniority_match: int, transferable_skills: int) -> str:
+    # Labels/spacing intentionally match tailor-resume/SKILL.md Step 11's report
+    # template verbatim, so this string can be dropped into the report as-is.
+    lines = [
+        f"  Skill Overlap      : {skill_overlap}/30 — {_skill_overlap_rationale(payload.get('skill_overlap', {}))}",
+        f"  Experience Relevance: {experience_relevance}/30 — "
+        f"{_experience_relevance_rationale(payload.get('experience_relevance', {}))}",
+        f"  Seniority Match    : {seniority_match}/20 — {_seniority_match_rationale(payload.get('seniority_match', {}))}",
+        f"  Transferable Skills: {transferable_skills}/20 — "
+        f"{_transferable_skills_rationale(payload.get('transferable_skills', {}))}",
+    ]
+    return "\n".join(lines)
+
+
 def _read_json(path: str | None):
     if path:
         return json.loads(Path(path).read_text())
@@ -217,7 +296,16 @@ def cmd_score(args):
     transferable_skills = compute_transferable_skills(payload.get("transferable_skills", {}))
     total = skill_overlap + experience_relevance + seniority_match + transferable_skills
 
+    # formatted_report is deterministically built from the same payload fields
+    # above -- no extra LLM judgment involved, same "script computes" contract
+    # as the sub-scores. It's the first key (not `total`) so an agent that
+    # only skims the first line of this JSON still sees the full breakdown,
+    # and callers should treat it as the report's four sub-score lines
+    # verbatim rather than reformatting the checklist from memory later.
     result = {
+        "formatted_report": _build_formatted_report(
+            payload, skill_overlap, experience_relevance, seniority_match, transferable_skills
+        ),
         "total": total,
         "skill_overlap": skill_overlap,
         "experience_relevance": experience_relevance,
